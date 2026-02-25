@@ -1,0 +1,60 @@
+>HIV_GAG_A02_Strong|HLA-A*02:01|0.89|HIV epitope from Gag protein
+GILGFVFTL
+>CMV_pp65_A02_Strong|HLA-A*02:01|0.92|CMV pp65 dominant epitope
+ALWGFFPVL
+>EBV_BZLF1_A02_Moderate|HLA-A*02:01|0.76|EBV BZLF1 epitope
+FLPSDFFPSV
+>HIV_NEF_A02_Strong|HLA-A*02:01|0.88|HIV Nef epitope
+NLVPMVATV
+>Influenza_M1_A02_Strong|HLA-A*02:01|0.84|Influenza M1 epitope
+ILKEPVHGV
+>HBV_Core_B07_Moderate|HLA-B*07:02|0.67|Hepatitis B Core epitope
+YLEPGPVTA
+>CMV_IE1_B07_Strong|HLA-B*07:02|0.91|CMV IE1 immediate early epitope
+FPRPWLHGL
+>Tumor_MART1_A02_Moderate|HLA-A*02:01|0.71|MART-1/Melan-A tumor antigen
+SLYNTVATL
+>Influenza_NP_A24_Strong|HLA-A*24:02|0.82|Influenza nucleoprotein A24 epitope
+KPIVQYDNF
+>EBV_EBNA3A_A24_Strong|HLA-A*24:02|0.79|EBV EBNA3A epitope
+QYIKANSKF
+>MAGE3_A01_Moderate|HLA-A*01:01|0.68|MAGE-3 tumor antigen
+WTAGAAAYY
+>Melanoma_gp100_A01_Strong|HLA-A*01:01|0.87|Melanoma gp100 epitope
+VSDGGPNLY
+>HCV_NS3_A02_Strong|HLA-A*02:01|0.95|Hepatitis C NS3 high affinity
+YLQPRTFLL
+>HIV_RT_B27_Strong|HLA-B*27:05|0.83|HIV reverse transcriptase B27 epitope
+RRLPIFSRL
+>CMV_pp28_B27_Strong|HLA-B*27:05|0.78|CMV pp28 B27-restricted epitope
+KTWGQYWQV
+>Tumor_p53_A03_Strong|HLA-A*03:01|0.89|p53 tumor suppressor epitope
+KLGGALQAK
+>EBV_BMLF1_A03_Strong|HLA-A*03:01|0.75|EBV BMLF1 epitope
+STLPETTVV
+>SARS_CoV2_S_A02_Moderate|HLA-A*02:01|0.73|SARS-CoV-2 Spike protein epitope
+KVAELVHFL
+>Zika_NS1_A24_Moderate|HLA-A*24:02|0.56|Zika virus NS1 epitope
+TYACFVSNL
+>HPV16_E7_A02_Strong|HLA-A*02:01|0.86|HPV16 E7 oncogenic epitope
+ALWGPDPAAA
+>Control_Neg_A02_Non|HLA-A*02:01|0.07|Negative control peptide
+GLCTLVAML
+>Control_Neg_A24_Non|HLA-A*24:02|0.14|Negative control for A24
+RYLENGKETL
+>Control_Neg_A01_Non|HLA-A*01:01|0.21|Negative control for A01
+ELAGIGILTV
+>Custom_Design_1|HLA-A*02:01|0.92|Computationally designed high binder
+ALYGFVFTL
+>Custom_Design_2|HLA-A*02:01|0.88|Modified HIV epitope for enhanced binding
+GILGFVFTV
+>Custom_Design_3|HLA-B*07:02|0.84|Optimized B07 binder
+FPKPWLHGL
+>Variant_HIV_1|HLA-A*02:01|0.69|HIV escape variant
+SLYNTVAVL
+>Variant_CMV_1|HLA-A*02:01|0.81|CMV mutant epitope
+ALWGFFPVI
+>Multi_Allele_1|HLA-A*02:01|0.76|Cross-reactive epitope candidate
+FLKEKGGPV
+>Multi_Allele_2|HLA-A*03:01|0.64|Supertype binding peptide
+IPSINVHHY
