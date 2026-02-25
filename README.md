@@ -63,6 +63,18 @@ This tool provides researchers with an accessible interface to run predictions w
 - Project workspace organization for managing research sessions
 
 ## Architecture
+### Optional Cloud Storage Integration
+
+The platform supports optional Google Drive integration for dataset persistence and model artifact storage.
+
+⚠️ This feature requires user-provided Google Cloud credentials.
+No credentials are included in this repository.
+
+To enable:
+1. Create a Google Cloud project
+2. Enable Drive API
+3. Generate service account credentials
+4. Add them to your local `.env` file
 
 ### System Overview
 
