@@ -1,0 +1,45 @@
+sequence,mhc_allele,binding_affinity,experimental_method,source,notes
+GILGFVFTL,HLA-A*02:01,0.89,Competitive Binding,IEDB,Strong binder - HIV epitope
+KLVALGINAV,HLA-A*02:01,0.23,Tetramer Staining,Literature,Weak binder
+FLPSDFFPSV,HLA-A*02:01,0.76,ELISPOT,In-house,EBV peptide
+ALWGFFPVL,HLA-A*02:01,0.92,Surface Plasmon Resonance,IEDB,High affinity CMV epitope
+TLTSCNTSV,HLA-A*02:01,0.15,Competitive Binding,IEDB,Non-binder
+ILKEPVHGV,HLA-A*02:01,0.84,T-cell Activation,Literature,Cancer antigen
+SLYNTVATL,HLA-A*02:01,0.71,ELISPOT,IEDB,HIV Gag epitope
+KVAELVHFL,HLA-A*02:01,0.34,Competitive Binding,Literature,Moderate binder
+NLVPMVATV,HLA-A*02:01,0.88,Tetramer Staining,IEDB,CMV pp65 epitope
+GLIYNRMGAV,HLA-A*02:01,0.12,Surface Plasmon Resonance,In-house,Non-binder control
+YLEPGPVTA,HLA-B*07:02,0.67,ELISPOT,Literature,HBV Core epitope
+FPRPWLHGL,HLA-B*07:02,0.91,Competitive Binding,IEDB,Strong viral epitope
+APRGPHGGAASGL,HLA-B*07:02,0.29,T-cell Activation,Literature,Long peptide - weak
+SPRRARSV,HLA-B*07:02,0.18,Competitive Binding,IEDB,Short peptide - non-binder
+LPRFPSSV,HLA-B*07:02,0.73,ELISPOT,In-house,Tumor antigen
+KPIVQYDNF,HLA-A*24:02,0.82,Tetramer Staining,IEDB,Strong Japanese population epitope
+TYACFVSNL,HLA-A*24:02,0.56,Competitive Binding,Literature,Moderate binder
+RYLENGKETL,HLA-A*24:02,0.14,Surface Plasmon Resonance,IEDB,Non-binder
+QYIKANSKF,HLA-A*24:02,0.79,ELISPOT,Literature,Influenza epitope
+AFLPWHRLF,HLA-A*24:02,0.35,T-cell Activation,In-house,Weak cancer epitope
+WTAGAAAYY,HLA-A*01:01,0.68,Competitive Binding,IEDB,MAGE family epitope
+ELAGIGILTV,HLA-A*01:01,0.21,ELISPOT,Literature,Non-binder control
+VSDGGPNLY,HLA-A*01:01,0.87,Tetramer Staining,IEDB,Strong melanoma epitope
+YSEHPTFTSQY,HLA-A*01:01,0.43,Surface Plasmon Resonance,Literature,Moderate 11-mer
+CTELKLSDY,HLA-A*01:01,0.16,Competitive Binding,In-house,Weak binder
+LPRRSGAAGA,HLA-C*07:01,0.52,ELISPOT,IEDB,HLA-C restricted epitope
+FRDYVDRFYKTL,HLA-C*07:01,0.31,T-cell Activation,Literature,Long HLA-C peptide
+AAGIGILTV,HLA-C*07:01,0.74,Competitive Binding,IEDB,Strong HLA-C binder
+KRWIILGLNK,HLA-C*07:01,0.19,Tetramer Staining,In-house,Non-binder
+FLKEKGGL,HLA-C*07:01,0.66,Surface Plasmon Resonance,Literature,Short strong binder
+YLQPRTFLL,HLA-A*02:01,0.95,Competitive Binding,IEDB,Exceptional high affinity
+GLCTLVAML,HLA-A*02:01,0.07,T-cell Activation,Literature,Strong non-binder
+ALWGPDPAAA,HLA-A*02:01,0.86,ELISPOT,IEDB,Modified CMV epitope
+SLYNTVAVL,HLA-A*02:01,0.69,Tetramer Staining,Literature,HIV variant
+KTWGQYWQV,HLA-B*27:05,0.78,Competitive Binding,IEDB,HLA-B27 specific
+GRFGGPRGAAF,HLA-B*27:05,0.41,Surface Plasmon Resonance,Literature,Moderate B27 binder
+RRLPIFSRL,HLA-B*27:05,0.83,ELISPOT,IEDB,Strong autoimmune epitope
+ARFPKGAAV,HLA-B*27:05,0.25,T-cell Activation,In-house,Weak B27 binder
+KRGVIAPRG,HLA-B*27:05,0.71,Competitive Binding,Literature,HIV B27 epitope
+IPSINVHHY,HLA-A*03:01,0.64,Tetramer Staining,IEDB,A3 supertype epitope
+KLGGALQAK,HLA-A*03:01,0.89,Competitive Binding,Literature,Strong A3 binder
+RIYDLIEL,HLA-A*03:01,0.22,ELISPOT,IEDB,Weak A3 peptide
+HSKKKCDEL,HLA-A*03:01,0.37,Surface Plasmon Resonance,In-house,Moderate lysine-rich
+STLPETTVV,HLA-A*03:01,0.75,T-cell Activation,Literature,Strong viral A3 epitope

@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+type: software
+title: "Peptide-MHC Binding Predictor"
+version: 1.0.0
+date-released: 2025-01-05
+url: "https://github.com/arditmishra/peptide-mhc-predictor"
+repository-code: "https://github.com/arditmishra/peptide-mhc-predictor"
+license: MIT
+authors:
+  - family-names: "Mishra"
+    given-names: "Ardit"
+    email: "research@arditmishra.com"
+    affiliation: "Independent Researcher"
+abstract: >-
+  A full-stack web application for predicting peptide-MHC class I binding
+  affinity using five deep learning architectures: CNN, BiLSTM, CNN+BiLSTM,
+  CNN+BiLSTM (optimized), and Transformer. The platform supports single-sequence
+  prediction, batch processing, mutation impact analysis, and peptide design
+  through a modern research interface built with React and Express.js.
+keywords:
+  - bioinformatics
+  - machine learning
+  - immunology
+  - peptide-MHC binding
+  - deep learning
+  - computational biology
+  - web application
+  - pytorch
+identifiers:
+  - type: url
+    value: "https://github.com/arditmishra/peptide-mhc-predictor"
+    description: "GitHub repository"
+preferred-citation:
+  type: software
+  authors:
+    - family-names: "Mishra"
+      given-names: "Ardit"
+      email: "research@arditmishra.com"
+  title: "Peptide-MHC Binding Predictor"
+  version: 1.0.0
+  year: 2025
+  url: "https://github.com/arditmishra/peptide-mhc-predictor"
