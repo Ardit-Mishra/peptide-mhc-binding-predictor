@@ -4,18 +4,10 @@ import { api } from "@/lib/api";
 import { BarChart3 } from "lucide-react";
 
 export default function ModelPerformance() {
-  const { data: performance, isLoading } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ["/api/models/performance"],
     queryFn: api.getModelPerformance,
   });
-
-  const models = [
-    { key: 'cnn', name: 'CNN', color: 'bg-primary' },
-    { key: 'bilstm', name: 'BiLSTM', color: 'bg-secondary' },
-    { key: 'cnn_bilstm', name: 'CNN+BiLSTM', color: 'bg-accent' },
-    { key: 'cnn_bilstm_best', name: 'CNN+BiLSTM Best', color: 'bg-green-500' },
-    { key: 'transformer', name: 'Transformer', color: 'bg-purple-500' },
-  ];
 
   return (
     <Card className="card-shadow" data-testid="card-model-performance">
@@ -38,34 +30,13 @@ export default function ModelPerformance() {
             ))}
           </div>
         ) : (
-          <div className="space-y-4">
-            {models.map((model) => {
-              const modelData = performance?.[model.key];
-              if (!modelData) return null;
-
-              return (
-                <div key={model.key} data-testid={`model-performance-${model.key}`}>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">{model.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {modelData.accuracy}%
-                    </span>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div
-                      className={`${model.color} h-2 rounded-full transition-all duration-300`}
-                      style={{ width: `${modelData.accuracy}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+          <div className="text-sm text-muted-foreground">
+            No trained model is served by this app, so there is no real per-model accuracy to
+            chart here. The only honest evaluation numbers this project has come from offline,
+            held-out evaluation of a model being integrated separately (XGBoost ROC-AUC 0.919 /
+            ESM-2+LoRA ROC-AUC 0.922) — see the Visualize page for details.
           </div>
         )}
-
-        <div className="mt-4 pt-3 border-t border-border text-xs text-muted-foreground">
-          Performance metrics based on validation dataset (20% holdout)
-        </div>
       </CardContent>
     </Card>
   );

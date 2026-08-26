@@ -114,11 +114,7 @@ export default function SettingsPage() {
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cnn">CNN - Fast pattern recognition</SelectItem>
-                    <SelectItem value="bilstm">BiLSTM - Sequence dependencies</SelectItem>
-                    <SelectItem value="cnn_bilstm">CNN+BiLSTM - Balanced approach</SelectItem>
-                    <SelectItem value="cnn_bilstm_best">CNN+BiLSTM Best - Highest accuracy</SelectItem>
-                    <SelectItem value="transformer">Transformer - State-of-the-art</SelectItem>
+                    <SelectItem value="cnn">Demonstration scorer (illustrative, not a trained model)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -169,23 +165,22 @@ export default function SettingsPage() {
 
               <div className="space-y-3">
                 <Label>Model Status</Label>
+                <p className="text-xs text-muted-foreground">
+                  These are UI-selectable demo slots, not trained models — none has a real
+                  accuracy to report. All five route through the same deterministic illustrative
+                  scorer.
+                </p>
                 <div className="grid gap-3">
-                  {[
-                    { name: "CNN", status: "loaded", accuracy: "92.4%" },
-                    { name: "BiLSTM", status: "loaded", accuracy: "89.7%" },
-                    { name: "CNN+BiLSTM", status: "loaded", accuracy: "93.2%" },
-                    { name: "CNN+BiLSTM Best", status: "loaded", accuracy: "95.8%" },
-                    { name: "Transformer", status: "loaded", accuracy: "96.3%" },
-                  ].map((model) => (
-                    <div key={model.name} className="flex items-center justify-between p-3 border rounded-lg">
+                  {["CNN", "BiLSTM", "CNN+BiLSTM", "CNN+BiLSTM Best", "Transformer"].map((name) => (
+                    <div key={name} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center space-x-3">
-                        <span className="font-medium">{model.name}</span>
-                        <Badge variant="secondary" className="bg-green-100 text-green-800">
-                          {model.status}
+                        <span className="font-medium">{name}</span>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          demo slot
                         </Badge>
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        Accuracy: {model.accuracy}
+                        No trained model — N/A
                       </span>
                     </div>
                   ))}
@@ -233,18 +228,18 @@ export default function SettingsPage() {
 
               <div className="space-y-3">
                 <Label>Session Settings</Label>
+                <p className="text-xs text-muted-foreground">
+                  This demo has no real authentication/session system — the values below are
+                  static UI placeholders, not tracked activity.
+                </p>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex justify-between">
                     <span>Session timeout:</span>
-                    <span>24 hours</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Last login:</span>
-                    <span>Today, 2:30 AM</span>
+                    <span>24 hours (placeholder)</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Active sessions:</span>
-                    <span>1</span>
+                    <span>N/A — no auth system</span>
                   </div>
                 </div>
               </div>
@@ -281,22 +276,19 @@ export default function SettingsPage() {
 
               <div className="space-y-3">
                 <Label>Storage Information</Label>
+                <p className="text-xs text-muted-foreground">
+                  This demo uses in-memory storage that resets on server restart — there is no
+                  cache or backup system. The figures below are not tracked anywhere in this
+                  build; wire up real counts before treating this section as live.
+                </p>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex justify-between">
-                    <span>Predictions stored:</span>
-                    <span>1,247</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Projects created:</span>
-                    <span>8</span>
-                  </div>
-                  <div className="flex justify-between">
                     <span>Cache size:</span>
-                    <span>245 MB</span>
+                    <span>N/A — no model weights are cached</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Last backup:</span>
-                    <span>2 hours ago</span>
+                    <span>Backups:</span>
+                    <span>N/A — no backup system exists</span>
                   </div>
                 </div>
               </div>

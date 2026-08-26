@@ -20,12 +20,14 @@ export default function BatchProcessing() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // HONESTY NOTE: All five slots route through the same deterministic illustrative scorer —
+  // none is a distinct trained model, so none has a real accuracy/speed difference.
   const models = [
-    { key: 'cnn', name: 'CNN', description: 'Fast pattern recognition' },
-    { key: 'bilstm', name: 'BiLSTM', description: 'Sequence dependencies' },
-    { key: 'cnn_bilstm_best', name: 'CNN+BiLSTM Best', description: 'Highest accuracy' },
-    { key: 'cnn_bilstm', name: 'CNN+BiLSTM', description: 'Balanced approach' },
-    { key: 'transformer', name: 'Transformer', description: 'State-of-the-art' },
+    { key: 'cnn', name: 'CNN', description: 'Demo slot (no trained model)' },
+    { key: 'bilstm', name: 'BiLSTM', description: 'Demo slot (no trained model)' },
+    { key: 'cnn_bilstm_best', name: 'CNN+BiLSTM Best', description: 'Demo slot (no trained model)' },
+    { key: 'cnn_bilstm', name: 'CNN+BiLSTM', description: 'Demo slot (no trained model)' },
+    { key: 'transformer', name: 'Transformer', description: 'Demo slot (no trained model)' },
   ];
 
   // Fetch batch jobs

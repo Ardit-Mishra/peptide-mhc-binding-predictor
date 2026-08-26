@@ -13,11 +13,16 @@ authors:
     email: "research@arditmishra.com"
     affiliation: "Independent Researcher"
 abstract: >-
-  A full-stack web application for predicting peptide-MHC class I binding
-  affinity using five deep learning architectures: CNN, BiLSTM, CNN+BiLSTM,
-  CNN+BiLSTM (optimized), and Transformer. The platform supports single-sequence
-  prediction, batch processing, mutation impact analysis, and peptide design
-  through a modern research interface built with React and Express.js.
+  A full-stack demonstration web application for peptide-MHC class I binding
+  prediction, providing an interactive research interface for single-sequence
+  prediction, batch processing, mutation impact analysis, and peptide design,
+  built with React and Express.js. Predictions currently shown by the running
+  application are illustrative placeholders and are not produced by a trained
+  model. A separate model (XGBoost baseline and ESM-2 150M + LoRA, held-out
+  ROC-AUC 0.919 / 0.922 respectively, trained offline on MHCflurry curated
+  data with a leak-free peptide-grouped split) is being integrated into this
+  application; those figures describe offline evaluation of that model, not
+  the current output of this software.
 keywords:
   - bioinformatics
   - machine learning

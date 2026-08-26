@@ -140,25 +140,25 @@ export default function Databases() {
       return;
     }
 
+    // HONESTY NOTE: No client for IEDB/UniProt/PDB/etc. exists in this codebase (server/routes.ts
+    // returns 501 for database search/import). This just opens the database's own public site in
+    // a new tab rather than pretending to run a live query against it.
     const database = databases.find(db => db.id === dbId);
-    if (database?.apiUrl) {
-      toast({
-        title: "Searching database",
-        description: `Querying ${database.name} for: ${query}`,
-      });
-      // Here you would implement actual API calls to the databases
-    } else {
-      window.open(database?.url, '_blank');
-    }
+    toast({
+      title: "Not implemented",
+      description: `No live query integration exists for ${database?.name} in this demo — opening its public site instead.`,
+    });
+    window.open(database?.url, '_blank');
   };
 
   const handleDataImport = (dbId: string) => {
+    // HONESTY NOTE: No import pipeline exists in this codebase for any of these databases.
     const database = databases.find(db => db.id === dbId);
     toast({
-      title: "Import initiated",
-      description: `Starting data import from ${database?.name}`,
+      title: "Not implemented",
+      description: `Data import from ${database?.name} is not implemented in this demo.`,
+      variant: "destructive",
     });
-    // Implement actual data import functionality
   };
 
   return (
@@ -167,10 +167,23 @@ export default function Databases() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Database Integration</h1>
           <p className="text-muted-foreground">
-            Access and integrate data from leading immunological and protein databases
+            Reference directory of public immunological and protein databases
           </p>
         </div>
       </div>
+
+      <Card>
+        <CardContent className="p-4">
+          <p className="text-sm text-muted-foreground">
+            <strong>No live integration exists.</strong> This app does not have a working client
+            for IEDB, UniProt, PDB, or any database below — <code>server/routes.ts</code> returns
+            "not implemented" for search/import. The links, record counts, and "last updated"
+            dates here are the databases' own public facts, provided as a reference directory; the
+            "Import" and connection-status controls do not perform a real query, import, or
+            connection check.
+          </p>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="browse" className="space-y-6">
         <TabsList>
@@ -246,12 +259,14 @@ export default function Databases() {
                     {db.apiUrl && (
                       <Button
                         size="sm"
+                        variant="secondary"
                         onClick={() => handleDataImport(db.id)}
                         className="flex-1"
                         data-testid={`button-import-${db.id}`}
+                        title="Not implemented in this demo"
                       >
                         <Download className="w-3 h-3 mr-1" />
-                        Import
+                        Import (not implemented)
                       </Button>
                     )}
                   </div>
@@ -321,32 +336,25 @@ export default function Databases() {
                   <CardTitle className="flex items-center space-x-2">
                     <db.icon className="w-5 h-5" />
                     <span>{db.name}</span>
-                    <Badge variant={db.apiUrl ? "default" : "secondary"}>
-                      {db.apiUrl ? "API Available" : "Web Only"}
-                    </Badge>
+                    <Badge variant="secondary">Not connected</Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-sm">Connection Status:</span>
-                      <span className="text-sm text-green-600">● Active</span>
+                      <span className="text-sm text-muted-foreground">
+                        ○ Not connected — no client implemented
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm">Last Sync:</span>
+                      <span className="text-sm">Database's own "updated" date:</span>
                       <span className="text-sm text-muted-foreground">{db.lastUpdated}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm">Access Level:</span>
                       <span className="text-sm">{db.access}</span>
                     </div>
-                    {db.apiUrl && (
-                      <div className="pt-2">
-                        <Button variant="outline" size="sm" className="w-full">
-                          Test Connection
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>

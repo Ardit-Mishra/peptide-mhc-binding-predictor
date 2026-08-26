@@ -71,7 +71,7 @@ export default function Home() {
                   Peptide–MHC Binding Predictor
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Advanced ML Models for Immunological Research
+                  Demonstration UI · illustrative scores, not a trained model
                 </p>
               </div>
             </div>
@@ -218,7 +218,6 @@ export default function Home() {
               <h3 className="font-semibold text-foreground mb-3">Legal Compliance</h3>
               <ul className="space-y-1 text-sm text-muted-foreground">
                 <li>• MIT License (Open Source)</li>
-                <li>• IEDB Terms of Use Compliant</li>
                 <li>• No Personal Health Information</li>
                 <li>• Academic Use License</li>
               </ul>
@@ -226,12 +225,14 @@ export default function Home() {
 
             <div>
               <h3 className="font-semibold text-foreground mb-3">Data Sources</h3>
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>• IEDB Public Database</li>
-                <li>• Open-source ML frameworks</li>
-                <li>• Published research datasets</li>
-                <li>• Educational training data</li>
-              </ul>
+              <p className="text-sm text-muted-foreground">
+                None — this demo has no live database integration and predictions are not derived
+                from any training dataset. See{" "}
+                <Link href="/databases" className="text-primary hover:underline">
+                  Database Integration
+                </Link>{" "}
+                for the honest status of external database access.
+              </p>
             </div>
 
             <div>
@@ -267,7 +268,8 @@ export default function Home() {
                 {" "}• Licensed under MIT License • Educational Use Only
               </p>
               <p className="text-xs opacity-75">
-                Built with React, Express, PyTorch • Complies with IEDB, institutional, and open-source licensing terms
+                Built with React and Express. No PyTorch model is served by this app — see the
+                Educational Purpose notice above and BENCHMARKS.md for details.
               </p>
             </div>
           </div>

@@ -115,9 +115,9 @@ export default function PredictionResults({ results }: PredictionResultsProps) {
         </div>
 
         <div className="mt-6 pt-4 border-t border-border">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Model trained on IEDB dataset (v2023.1) • 180k sequences</span>
-            <span>Last updated: 2 days ago</span>
+          <div className="text-xs text-muted-foreground">
+            No trained model backs this result — the fields above are illustrative demo output,
+            not the output of a model trained on any dataset.
           </div>
         </div>
       </CardContent>

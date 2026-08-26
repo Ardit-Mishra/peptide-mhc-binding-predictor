@@ -11,6 +11,81 @@ import { FlaskConical, GitCompare, Shuffle, Zap, AlertTriangle, TrendingUp } fro
 import { useToast } from "@/hooks/use-toast";
 import type { MutationRequest } from "@shared/schema";
 
+interface AlignmentResult {
+  alignedSeq1: string;
+  alignedSeq2: string;
+  identity: number;
+  gaps: number;
+  differences: { position: number; seq1: string; seq2: string }[];
+}
+
+// Real global pairwise alignment (Needleman-Wunsch), computed entirely client-side.
+// No ML/model involved — this is a plain dynamic-programming alignment of whatever
+// the user typed into Sequence 1 / Sequence 2.
+function alignSequences(a: string, b: string): AlignmentResult {
+  const MATCH = 1;
+  const MISMATCH = -1;
+  const GAP = -2;
+  const n = a.length;
+  const m = b.length;
+
+  const score: number[][] = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = 0; i <= n; i++) score[i][0] = i * GAP;
+  for (let j = 0; j <= m; j++) score[0][j] = j * GAP;
+
+  for (let i = 1; i <= n; i++) {
+    for (let j = 1; j <= m; j++) {
+      const diag = score[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? MATCH : MISMATCH);
+      const up = score[i - 1][j] + GAP;
+      const left = score[i][j - 1] + GAP;
+      score[i][j] = Math.max(diag, up, left);
+    }
+  }
+
+  let i = n;
+  let j = m;
+  let alignedA = "";
+  let alignedB = "";
+  while (i > 0 && j > 0) {
+    const current = score[i][j];
+    const diagScore = score[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? MATCH : MISMATCH);
+    if (current === diagScore) {
+      alignedA = a[i - 1] + alignedA;
+      alignedB = b[j - 1] + alignedB;
+      i--; j--;
+    } else if (current === score[i - 1][j] + GAP) {
+      alignedA = a[i - 1] + alignedA;
+      alignedB = "-" + alignedB;
+      i--;
+    } else {
+      alignedA = "-" + alignedA;
+      alignedB = b[j - 1] + alignedB;
+      j--;
+    }
+  }
+  while (i > 0) { alignedA = a[i - 1] + alignedA; alignedB = "-" + alignedB; i--; }
+  while (j > 0) { alignedA = "-" + alignedA; alignedB = b[j - 1] + alignedB; j--; }
+
+  let matches = 0;
+  let gaps = 0;
+  const differences: { position: number; seq1: string; seq2: string }[] = [];
+  for (let k = 0; k < alignedA.length; k++) {
+    const c1 = alignedA[k];
+    const c2 = alignedB[k];
+    if (c1 === "-" || c2 === "-") {
+      gaps++;
+      differences.push({ position: k, seq1: c1, seq2: c2 });
+    } else if (c1 === c2) {
+      matches++;
+    } else {
+      differences.push({ position: k, seq1: c1, seq2: c2 });
+    }
+  }
+  const identity = alignedA.length > 0 ? (matches / alignedA.length) * 100 : 0;
+
+  return { alignedSeq1: alignedA, alignedSeq2: alignedB, identity, gaps, differences };
+}
+
 export default function AnalysisTools() {
   const { toast } = useToast();
   
@@ -23,7 +98,8 @@ export default function AnalysisTools() {
   // Sequence Alignment State
   const [sequence1, setSequence1] = useState("");
   const [sequence2, setSequence2] = useState("");
-  
+  const [alignmentResult, setAlignmentResult] = useState<AlignmentResult | null>(null);
+
   // Motif Discovery State
   const [motifSequences, setMotifSequences] = useState("");
 
@@ -72,7 +148,8 @@ export default function AnalysisTools() {
     });
   };
 
-  // Mock results for demonstration
+  // Static illustrative example, unrelated to whatever the user enters above.
+  // This is NOT computed from the form input and is NOT a trained-model output.
   const mockMutationResults = [
     { position: 3, original: 'I', mutated: 'L', impact: -0.23, effect: 'Decreased binding' },
     { position: 5, original: 'I', mutated: 'V', impact: -0.12, effect: 'Slightly decreased' },
@@ -80,15 +157,16 @@ export default function AnalysisTools() {
     { position: 8, original: 'T', mutated: 'S', impact: -0.08, effect: 'Minimal effect' },
   ];
 
-  const mockAlignmentResult = {
-    sequence1: "AAGIGILTV",
-    sequence2: "AAGVGILTV", 
-    identity: 88.9,
-    similarity: 100,
-    gaps: 0,
-    alignedSeq1: "AAGIGILTV",
-    alignedSeq2: "AAGVGILTV",
-    differences: [{ position: 3, seq1: 'I', seq2: 'V' }]
+  const handleAlignSequences = () => {
+    if (!sequence1 || !sequence2) {
+      toast({
+        title: "Error",
+        description: "Please enter both sequences to align.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setAlignmentResult(alignSequences(sequence1, sequence2));
   };
 
   const mockMotifs = [
@@ -171,13 +249,12 @@ export default function AnalysisTools() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cnn">CNN</SelectItem>
-                      <SelectItem value="bilstm">BiLSTM</SelectItem>
-                      <SelectItem value="cnn_bilstm_best">CNN+BiLSTM Best</SelectItem>
-                      <SelectItem value="cnn_bilstm">CNN+BiLSTM</SelectItem>
-                      <SelectItem value="transformer">Transformer</SelectItem>
+                      <SelectItem value="cnn">Demonstration model</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    This build offers one illustrative demonstration model, not a set of trained architectures.
+                  </p>
                 </div>
 
                 <Button 
@@ -212,6 +289,27 @@ export default function AnalysisTools() {
                 <CardTitle>Mutation Results</CardTitle>
               </CardHeader>
               <CardContent>
+                {mutationAnalysisMutation.data && (
+                  <div className="mb-4 border border-border rounded-lg p-3 bg-muted/50">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium">Result for your input</span>
+                      <Badge
+                        className={mutationAnalysisMutation.data.impactScore > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
+                      >
+                        {mutationAnalysisMutation.data.impactScore > 0 ? "+" : ""}
+                        {mutationAnalysisMutation.data.impactScore.toFixed(3)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Demonstration score from the request above — simulated, not a trained-model output.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Example output</span>
+                  <Badge variant="outline" className="text-xs">Illustrative — not computed from your input</Badge>
+                </div>
                 <div className="space-y-3">
                   {mockMutationResults.map((result, index) => (
                     <div key={index} className="border border-border rounded-lg p-3">
@@ -268,10 +366,18 @@ export default function AnalysisTools() {
                   />
                 </div>
 
-                <Button className="w-full" data-testid="button-align-sequences">
+                <Button
+                  className="w-full"
+                  onClick={handleAlignSequences}
+                  disabled={!sequence1 || !sequence2}
+                  data-testid="button-align-sequences"
+                >
                   <GitCompare className="w-4 h-4 mr-2" />
                   Align Sequences
                 </Button>
+                <p className="text-xs text-muted-foreground">
+                  Computes a real pairwise global alignment (Needleman-Wunsch) of the two sequences above — no model involved.
+                </p>
               </CardContent>
             </Card>
 
@@ -280,40 +386,52 @@ export default function AnalysisTools() {
                 <CardTitle>Alignment Results</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-green-600">{mockAlignmentResult.identity}%</div>
-                      <div className="text-muted-foreground">Identity</div>
+                {alignmentResult ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">{alignmentResult.identity.toFixed(1)}%</div>
+                        <div className="text-muted-foreground">Identity</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-gray-600">{alignmentResult.gaps}</div>
+                        <div className="text-muted-foreground">Gaps</div>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-blue-600">{mockAlignmentResult.similarity}%</div>
-                      <div className="text-muted-foreground">Similarity</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-600">{mockAlignmentResult.gaps}</div>
-                      <div className="text-muted-foreground">Gaps</div>
-                    </div>
-                  </div>
 
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Aligned Sequences</h4>
-                    <div className="font-mono text-sm bg-muted p-3 rounded">
-                      <div>{mockAlignmentResult.alignedSeq1}</div>
-                      <div className="text-muted-foreground">|||||||X|</div>
-                      <div>{mockAlignmentResult.alignedSeq2}</div>
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Aligned Sequences</h4>
+                      <div className="font-mono text-sm bg-muted p-3 rounded overflow-x-auto">
+                        <div>{alignmentResult.alignedSeq1}</div>
+                        <div className="text-muted-foreground">
+                          {alignmentResult.alignedSeq1.split('').map((c, idx) => (
+                            c === alignmentResult.alignedSeq2[idx] && c !== '-' ? '|' : ' '
+                          )).join('')}
+                        </div>
+                        <div>{alignmentResult.alignedSeq2}</div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium mb-2">Differences ({alignmentResult.differences.length})</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {alignmentResult.differences.length === 0 ? (
+                          <span className="text-sm text-muted-foreground">No differences — sequences align identically.</span>
+                        ) : (
+                          alignmentResult.differences.map((diff, index) => (
+                            <Badge key={index} variant="outline">
+                              Pos {diff.position}: {diff.seq1}→{diff.seq2}
+                            </Badge>
+                          ))
+                        )}
+                      </div>
                     </div>
                   </div>
-
-                  <div>
-                    <h4 className="font-medium mb-2">Differences</h4>
-                    {mockAlignmentResult.differences.map((diff, index) => (
-                      <Badge key={index} variant="outline" className="mr-2">
-                        Pos {diff.position}: {diff.seq1}→{diff.seq2}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Enter both sequences and click "Align Sequences" to compute a real alignment.
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -375,9 +493,9 @@ export default function AnalysisTools() {
                   </div>
                 </div>
 
-                <Button className="w-full" data-testid="button-discover-motifs">
+                <Button className="w-full" disabled title="Not implemented in this demo build" data-testid="button-discover-motifs">
                   <FlaskConical className="w-4 h-4 mr-2" />
-                  Discover Motifs
+                  Discover Motifs (not implemented)
                 </Button>
               </CardContent>
             </Card>
@@ -387,6 +505,10 @@ export default function AnalysisTools() {
                 <CardTitle>Discovered Motifs</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Example output</span>
+                  <Badge variant="outline" className="text-xs">Illustrative — not a computed statistical test</Badge>
+                </div>
                 <div className="space-y-3">
                   {mockMotifs.map((motif, index) => (
                     <div key={index} className="border border-border rounded-lg p-3">
@@ -394,7 +516,7 @@ export default function AnalysisTools() {
                         <span className="font-mono text-lg font-bold">{motif.pattern}</span>
                         <div className="flex items-center space-x-2">
                           <Badge>{motif.frequency}x</Badge>
-                          <Badge variant="outline">p={motif.significance}</Badge>
+                          <Badge variant="outline">p={motif.significance} (illustrative)</Badge>
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground">

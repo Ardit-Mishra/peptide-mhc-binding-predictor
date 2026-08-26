@@ -152,13 +152,21 @@ Response (JSON with probability, confidence, rank, compute time, model metrics)
 
 ### Model Loading
 
-The `ModelLoader` service manages model weight files:
+**This section describes the current demonstration state, not a real inference pipeline.**
 
-1. On startup, checks for `.pt` files in the `models/` directory
-2. If files exist locally, loads them directly
-3. If files are missing and Google Drive credentials are configured, downloads from Drive
-4. Models are cached in memory after first load
-5. Loading status is tracked and exposed via the health check endpoint
+The `ModelLoader` service only checks for the *presence* of `.pt` files in the `models/`
+directory at startup; it does not parse, deserialize, or load any weights into an inference
+engine, and no PyTorch (or other) runtime is invoked. This existence check exists solely to
+populate the `/api/health` "models loaded" status indicator in the UI.
+
+1. On startup, checks whether `.pt` files exist in the `models/` directory
+2. If files are missing and Google Drive credentials are configured, an existence check against
+   Drive is attempted instead
+3. Loading status (file-present/file-missing, not weights-loaded) is tracked and exposed via the
+   health check endpoint
+4. Actual predictions come from a placeholder function in `server/models/*.ts` (see
+   `docs/model-methodology.md`), not from these files — the `.pt` files are not currently used
+   for inference at all
 
 ## Data Model
 

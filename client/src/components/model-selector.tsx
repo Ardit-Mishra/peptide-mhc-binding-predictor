@@ -43,35 +43,40 @@ export default function ModelSelector({ selectedModel, onModelSelect }: ModelSel
     );
   }
 
+  // HONESTY NOTE: These five "models" are UI-selectable demo slots. Every slot routes
+  // through the same deterministic illustrative scorer (server/lib/illustrative-scorer.ts) --
+  // none of them is a distinct trained architecture, so none has real, differing
+  // accuracy/speed characteristics. The descriptions below name the archetype each slot is
+  // labeled after; they do not describe a real capability difference between slots.
   const models = [
     {
       key: 'cnn',
       name: 'CNN',
-      description: 'Fast pattern recognition with convolutional layers. Use for: Quick screening of large peptide libraries, real-time predictions, when speed is priority.',
+      description: 'Demo slot labeled "CNN" — no trained CNN exists behind it; see disclaimer below.',
       data: performance?.cnn,
     },
     {
       key: 'bilstm',
       name: 'BiLSTM',
-      description: 'Captures sequence dependencies in both directions. Use for: Novel peptide sequences, analyzing amino acid context, when sequence order matters.',
+      description: 'Demo slot labeled "BiLSTM" — no trained BiLSTM exists behind it; see disclaimer below.',
       data: performance?.bilstm,
     },
     {
       key: 'cnn_bilstm_best',
       name: 'CNN+BiLSTM Best',
-      description: 'Highest accuracy hybrid model. Use for: Critical research decisions, publication-quality results, when maximum accuracy is essential.',
+      description: 'Demo slot labeled "CNN+BiLSTM Best" — no trained hybrid model exists behind it; see disclaimer below.',
       data: performance?.cnn_bilstm_best,
     },
     {
       key: 'cnn_bilstm',
       name: 'CNN+BiLSTM',
-      description: 'Balanced hybrid approach. Use for: General research, balanced speed/accuracy needs, diverse peptide sets, everyday predictions.',
+      description: 'Demo slot labeled "CNN+BiLSTM" — no trained hybrid model exists behind it; see disclaimer below.',
       data: performance?.cnn_bilstm,
     },
     {
       key: 'transformer',
       name: 'Transformer',
-      description: 'State-of-the-art self-attention mechanism. Use for: Complex peptides, cross-allele comparisons, cutting-edge research applications.',
+      description: 'Demo slot labeled "Transformer" — no trained Transformer exists behind it; see disclaimer below.',
       data: performance?.transformer,
     },
   ];
@@ -83,6 +88,11 @@ export default function ModelSelector({ selectedModel, onModelSelect }: ModelSel
           <Brain className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold text-foreground">Model Selection</h2>
         </div>
+
+        <p className="text-xs text-muted-foreground mb-4">
+          None of these slots is a trained model — all five route through the same deterministic,
+          illustrative scoring heuristic. There is no real accuracy or speed difference between them.
+        </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           {models.map((model) => {
@@ -111,18 +121,6 @@ export default function ModelSelector({ selectedModel, onModelSelect }: ModelSel
                 <p className={`text-xs mb-2 ${isActive ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                   {model.description}
                 </p>
-                {model.data && (
-                  <div className="mt-2 text-xs">
-                    <div className="flex justify-between">
-                      <span>Accuracy:</span>
-                      <span className="font-medium">{model.data.accuracy}%</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Speed:</span>
-                      <span className="font-medium">{model.data.speed}</span>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
