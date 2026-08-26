@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import PredictionForm from "@/components/prediction-form";
 import ModelSelector from "@/components/model-selector";
 import PredictionResults from "@/components/prediction-results";
-import SystemStatus from "@/components/system-status";
 import ModelPerformance from "@/components/model-performance";
 import RecentActivity from "@/components/recent-activity";
 import { Dna, Server, ChartLine, Clock, Download, Upload, Settings } from "lucide-react";
@@ -71,18 +70,14 @@ export default function Home() {
                   Peptide–MHC Binding Predictor
                 </h1>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Demonstration UI · illustrative scores, not a trained model
+                  Allele-conditioned HLA class I binding · runs in your browser
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 sm:space-x-4 w-full sm:w-auto">
-              <SystemStatus compact />
-              
-              <div className="hidden sm:flex items-center space-x-2 text-sm">
-                <Server className="w-4 h-4 text-accent" />
-                <span className="text-muted-foreground">Models Loaded</span>
-              </div>
+            <div className="hidden sm:flex items-center space-x-2 text-sm w-full sm:w-auto">
+              <Server className="w-4 h-4 text-accent" />
+              <span className="text-muted-foreground">129 HLA alleles · in-browser</span>
             </div>
           </div>
         </div>
@@ -114,9 +109,6 @@ export default function Home() {
 
           {/* Right Column */}
           <div className="space-y-4 sm:space-y-6">
-            {/* System Status */}
-            <SystemStatus />
-
             {/* Model Performance */}
             <ModelPerformance />
 
@@ -268,8 +260,8 @@ export default function Home() {
                 {" "}• Licensed under MIT License • Educational Use Only
               </p>
               <p className="text-xs opacity-75">
-                Built with React and Express. No PyTorch model is served by this app — see the
-                Educational Purpose notice above and BENCHMARKS.md for details.
+                Static React app — no backend. An XGBoost model (held-out ROC-AUC 0.919)
+                runs client-side; see BENCHMARKS.md for evaluation and limitations.
               </p>
             </div>
           </div>

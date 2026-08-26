@@ -42,7 +42,12 @@ export interface CompactModel {
 }
 
 export interface BindingPrediction {
-  /** Calibrated probability that the peptide binds the allele (IC50 < 500 nM). */
+  /**
+   * Model score in [0,1] for IC50 < 500 nM. NOT verified as calibrated: no
+   * Platt/isotonic scaling was applied and no reliability curve, Brier score or
+   * ECE has been computed. A logistic output lying in [0,1] does not make it a
+   * calibrated probability. Treat it as a ranking score until that is measured.
+   */
   probability: number;
   /** Binding-strength label derived from `probability`. */
   rank: "Strong" | "Moderate" | "Weak";

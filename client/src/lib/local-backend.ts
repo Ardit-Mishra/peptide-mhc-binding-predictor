@@ -215,7 +215,10 @@ async function runBatch(body: unknown) {
   const req = batchUploadSchema.parse(body);
   // Load before creating the job so a model-load failure surfaces as an error
   // rather than a job that silently never completes.
-  await loadModel();
+  const { predictor } = await loadModel();
+  if (!predictor.hasAllele(req.mhcAllele)) {
+    return json({ message: `${req.mhcAllele} is not a trained allele` }, 400);
+  }
   const now = new Date().toISOString();
   const job: BatchJob = {
     id: uid(),
@@ -238,7 +241,7 @@ async function runBatch(body: unknown) {
   setTimeout(() => {
     void (async () => {
       const results = await Promise.all(
-        req.sequences.map((sequence) => scoreFor(sequence)),
+        req.sequences.map((sequence) => scoreFor(sequence, req.mhcAllele)),
       );
       store.putBatchJob({
         ...job,

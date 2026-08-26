@@ -184,7 +184,7 @@ export default function PredictionForm({
                 ) : (
                   <span className="flex items-center justify-center space-x-2">
                     <Play className="w-4 h-4" />
-                    <span>Predict Binding Affinity</span>
+                    <span>Predict binding</span>
                   </span>
                 )}
               </Button>

@@ -10,13 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, Download, Play, Pause, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
+import AlleleSelect from "@/components/allele-select";
 import { useToast } from "@/hooks/use-toast";
 import type { BatchJob, BatchUploadRequest } from "@shared/schema";
 
 export default function BatchProcessing() {
   const [batchName, setBatchName] = useState("");
   const [sequences, setSequences] = useState("");
-  const [selectedModels, setSelectedModels] = useState<string[]>(["xgb_pseudoseq"]);
+  const [selectedModels] = useState<string[]>(["xgb_pseudoseq"]);
+  const [batchAllele, setBatchAllele] = useState("HLA-A*02:01");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -57,7 +59,6 @@ export default function BatchProcessing() {
       queryClient.invalidateQueries({ queryKey: ['/api/batch/jobs'] });
       setBatchName("");
       setSequences("");
-      setSelectedModels(["cnn"]);
     },
     onError: (error) => {
       toast({
@@ -130,15 +131,8 @@ export default function BatchProcessing() {
       name: batchName,
       models: selectedModels as any,
       sequences: sequenceLines,
+      mhcAllele: batchAllele,
     });
-  };
-
-  const handleModelToggle = (modelKey: string) => {
-    setSelectedModels(prev => 
-      prev.includes(modelKey) 
-        ? prev.filter(m => m !== modelKey)
-        : [...prev, modelKey]
-    );
   };
 
   const getStatusIcon = (status: string) => {
@@ -205,23 +199,20 @@ export default function BatchProcessing() {
             </div>
 
             <div>
-              <Label>Select Models</Label>
-              <div className="grid grid-cols-1 gap-2 mt-2">
-                {models.map((model) => (
-                  <div key={model.key} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={model.key}
-                      checked={selectedModels.includes(model.key)}
-                      onCheckedChange={() => handleModelToggle(model.key)}
-                      data-testid={`checkbox-model-${model.key}`}
-                    />
-                    <label htmlFor={model.key} className="text-sm flex-1 cursor-pointer">
-                      <span className="font-medium">{model.name}</span>
-                      <span className="text-muted-foreground ml-2">{model.description}</span>
-                    </label>
-                  </div>
-                ))}
+              <Label>HLA allele</Label>
+              <div className="mt-2">
+                <AlleleSelect
+                  value={batchAllele}
+                  onChange={setBatchAllele}
+                  testId="select-batch-allele"
+                />
               </div>
+              {/* Every peptide in the batch is scored against this allele. The
+                  batch used to send no allele at all and silently fall back to
+                  HLA-A*02:01, so results looked allele-specific but were not. */}
+              <p className="text-xs text-muted-foreground mt-2">
+                All peptides in this batch are scored against this allele.
+              </p>
             </div>
 
             <Button 
