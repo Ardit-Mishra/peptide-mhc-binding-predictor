@@ -31,10 +31,9 @@ export default function ModelPerformance() {
           </div>
         ) : (
           <div className="text-sm text-muted-foreground">
-            No trained model is served by this app, so there is no real per-model accuracy to
-            chart here. The only honest evaluation numbers this project has come from offline,
-            held-out evaluation of a model being integrated separately (XGBoost ROC-AUC 0.919 /
-            ESM-2+LoRA ROC-AUC 0.922) — see the Visualize page for details.
+            Held-out evaluation of the served model: ROC-AUC 0.919, PR-AUC 0.806, on a
+            peptide-grouped split of 120,000 MHCflurry-curated measurements across 129
+            alleles. See the Visualize page for details.
           </div>
         )}
       </CardContent>

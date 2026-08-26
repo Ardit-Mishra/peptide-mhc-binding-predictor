@@ -59,7 +59,6 @@ held-out offline evaluation only — never this app's live output.
 | Model | Data / Split | Held-out ROC-AUC | Held-out PR-AUC |
 |-------|--------------|-------------------|-------------------|
 | XGBoost baseline (allele pseudo-sequence conditioning) | MHCflurry curated data, leak-free peptide-grouped split | 0.919 | -- |
-| ESM-2 150M + LoRA | MHCflurry curated data, leak-free peptide-grouped split | 0.922 | 0.827 |
 
 "Peptide-grouped split" means no peptide sequence appears in both the training and test sets,
 which avoids the inflated scores that come from sequence leakage across the split. Integrating

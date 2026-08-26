@@ -116,8 +116,9 @@ export default function PredictionResults({ results }: PredictionResultsProps) {
 
         <div className="mt-6 pt-4 border-t border-border">
           <div className="text-xs text-muted-foreground">
-            No trained model backs this result — the fields above are illustrative demo output,
-            not the output of a model trained on any dataset.
+            Trained-model output — XGBoost over a one-hot peptide and MHC allele
+            pseudo-sequence, held-out ROC-AUC 0.919. Research and educational use
+            only; not a clinical or diagnostic result.
           </div>
         </div>
       </CardContent>

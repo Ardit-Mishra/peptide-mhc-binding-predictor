@@ -1,0 +1,76 @@
+"""Score the same peptide/allele pairs with the original XGBoost model.
+
+Reads scripts/out/parity-js.json (written by verify-parity.mjs), recomputes each
+probability with the Python model the browser bundle was exported from, and
+reports the largest disagreement. Any difference beyond float32 noise means the
+TypeScript predictor is not faithful and must not be shipped.
+
+    uv run --with xgboost --with "numpy<2" python scripts/verify_parity.py
+"""
+import json
+import os
+import sys
+
+import numpy as np
+import xgboost as xgb
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+JS = os.path.join(ROOT, "scripts", "out", "parity-js.json")
+ALLELES = os.path.join(ROOT, "client", "public", "models", "pmhc_alleles.json")
+# The Python model lives with the training code, outside the app repo.
+NATIVE = os.path.join(
+    ROOT, "..", "ml-training", "peptide-mhc", "pmhc_xgb.json"
+)
+
+if not os.path.exists(JS):
+    sys.exit("run `node scripts/verify-parity.mjs` first")
+if not os.path.exists(NATIVE):
+    sys.exit(f"original model not found at {NATIVE}")
+
+js = json.load(open(JS))
+table = json.load(open(ALLELES))
+alphabet = table["alphabet"]
+plen, alen, nfeat = table["peptideLength"], table["alleleLength"], table["nFeatures"]
+pseudo = table["pseudoSequences"]
+idx = {aa: i for i, aa in enumerate(alphabet)}
+A = len(alphabet)
+
+
+def encode(peptide: str, allele: str) -> np.ndarray:
+    x = np.zeros(nfeat, dtype=np.float32)
+    for i, aa in enumerate(peptide[:plen]):
+        j = idx.get(aa)
+        if j is not None:
+            x[i * A + j] = 1
+    seq = pseudo.get(allele)
+    if seq is not None:
+        base = plen * A
+        for i, aa in enumerate(seq[:alen]):
+            j = idx.get(aa)
+            if j is not None:
+                x[base + i * A + j] = 1
+    return x
+
+
+booster = xgb.Booster()
+booster.load_model(NATIVE)
+
+cases = js["cases"]
+X = np.stack([encode(c["peptide"], c["allele"]) for c in cases])
+py = booster.predict(xgb.DMatrix(X))
+jsp = np.array([c["probability"] for c in cases], dtype=np.float64)
+
+diff = np.abs(py - jsp)
+worst = int(np.argmax(diff))
+print(f"pairs compared      : {len(cases)}")
+print(f"alleles covered     : {len({c['allele'] for c in cases})}")
+print(f"max |python - js|   : {diff.max():.3e}")
+print(f"mean |python - js|  : {diff.mean():.3e}")
+print(f"worst case          : {cases[worst]['peptide']} / {cases[worst]['allele']}"
+      f"  py={py[worst]:.10f} js={jsp[worst]:.10f}")
+print(f"js speed            : {js['msPerPrediction']:.3f} ms/prediction")
+
+TOL = 1e-6
+if diff.max() > TOL:
+    sys.exit(f"FAIL: max difference {diff.max():.3e} exceeds {TOL:.0e}")
+print(f"\nPASS - browser predictions match Python within {TOL:.0e}")

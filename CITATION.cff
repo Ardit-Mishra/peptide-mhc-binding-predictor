@@ -19,7 +19,7 @@ abstract: >-
   built with React and Express.js. Predictions currently shown by the running
   application are illustrative placeholders and are not produced by a trained
   model. A separate model (XGBoost baseline and ESM-2 150M + LoRA, held-out
-  ROC-AUC 0.919 / 0.922 respectively, trained offline on MHCflurry curated
+  held-out peptide-grouped ROC-AUC 0.919, trained on MHCflurry curated
   data with a leak-free peptide-grouped split) is being integrated into this
   application; those figures describe offline evaluation of that model, not
   the current output of this software.

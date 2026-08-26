@@ -97,7 +97,9 @@ jspm_packages/
 
 # Gatsby files
 .cache/
-public
+# NOTE: the Gatsby boilerplate ignored a bare `public`, which also matched
+# client/public — where the model assets live. Vite's build output is dist/,
+# and server/public is ignored separately below.
 
 # Storybook build outputs
 .out
@@ -146,3 +148,4 @@ replit.md
 server/public
 vite.config.ts.*
 *.tar.gz
+scripts/out/
