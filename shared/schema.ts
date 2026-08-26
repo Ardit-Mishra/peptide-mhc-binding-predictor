@@ -147,6 +147,12 @@ export const predictResponseSchema = z.object({
   sensitivity: z.string(),
   specificity: z.string(),
   mhcAllele: z.string().optional(),
+  /** Raw log-odds behind `probability`, for users who want the pre-link value. */
+  margin: z.number().optional(),
+  /** Training measurements backing this allele; null when unrecorded. */
+  alleleSupportN: z.number().nullable().optional(),
+  alleleSupport: z.string().optional(),
+  disclaimer: z.string().optional(),
 });
 
 export const batchUploadSchema = z.object({

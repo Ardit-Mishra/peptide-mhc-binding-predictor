@@ -39,13 +39,19 @@ export default function PredictionResults({ results }: PredictionResultsProps) {
               </div>
             </div>
 
+            {/* Training support, not a confidence interval. The model does not
+                produce an uncertainty estimate, so showing how much data backs
+                this allele is the honest stand-in: a prediction resting on 200
+                measurements deserves less weight than one resting on 14,000. */}
             <div>
-              <div className="text-2xl font-bold text-accent mb-1" data-testid="text-confidence">
-                {results.confidence}%
+              <div className="text-2xl font-bold text-accent mb-1" data-testid="text-allele-support">
+                {results.alleleSupportN != null
+                  ? results.alleleSupportN.toLocaleString()
+                  : "—"}
               </div>
-              <div className="text-sm text-muted-foreground">Confidence</div>
-              <div className="text-xs text-accent mt-1">
-                {results.confidence >= 90 ? 'High Reliability' : 'Medium Reliability'}
+              <div className="text-sm text-muted-foreground">Training measurements</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                for {results.mhcAllele ?? "this allele"}
               </div>
             </div>
 
@@ -54,10 +60,13 @@ export default function PredictionResults({ results }: PredictionResultsProps) {
                 {results.rank}
               </div>
               <div className="text-sm text-muted-foreground">Binding Strength</div>
+              {/* The model outputs P(IC50 < 500 nM); it does not predict an IC50
+                  value. These bands describe that probability. The previous copy
+                  quoted nM affinity ranges the model never estimates. */}
               <div className="text-xs text-secondary mt-1">
-                {results.rank === 'Strong' ? 'IC50 < 500 nM' : 
-                 results.rank === 'Moderate' ? 'IC50 500-5000 nM' : 
-                 'IC50 > 5000 nM'}
+                {results.rank === 'Strong' ? 'p > 0.8 that IC50 < 500 nM' :
+                 results.rank === 'Moderate' ? 'p 0.5-0.8 that IC50 < 500 nM' :
+                 'p < 0.5 that IC50 < 500 nM'}
               </div>
             </div>
           </div>
@@ -94,21 +103,19 @@ export default function PredictionResults({ results }: PredictionResultsProps) {
           <div className="space-y-3">
             <h3 className="font-medium text-foreground">Model Metrics</h3>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Training Accuracy:</span>
-                <span data-testid="text-training-accuracy">{results.trainingAcc}</span>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground shrink-0">Trained on:</span>
+                <span className="text-right" data-testid="text-training-data">{results.trainingAcc}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Validation AUC:</span>
-                <span data-testid="text-validation-auc">{results.validationAuc}</span>
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground shrink-0">Held-out score:</span>
+                <span className="text-right" data-testid="text-validation-auc">{results.validationAuc}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Test Sensitivity:</span>
-                <span data-testid="text-sensitivity">{results.sensitivity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Test Specificity:</span>
-                <span data-testid="text-specificity">{results.specificity}</span>
+              {/* The model emits a probability, not a call, so there is no fixed
+                  operating point and therefore no sensitivity/specificity pair. */}
+              <div className="flex justify-between gap-4">
+                <span className="text-muted-foreground shrink-0">Operating point:</span>
+                <span className="text-right" data-testid="text-sensitivity">{results.sensitivity}</span>
               </div>
             </div>
           </div>
