@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FlaskConical, GitCompare, Shuffle, Zap, AlertTriangle, TrendingUp } from "lucide-react";
+import AlleleSelect from "@/components/allele-select";
 import { useToast } from "@/hooks/use-toast";
 import type { MutationRequest } from "@shared/schema";
 
@@ -94,6 +95,7 @@ export default function AnalysisTools() {
   const [mutationPosition, setMutationPosition] = useState(0);
   const [newAminoAcid, setNewAminoAcid] = useState("A");
   const [mutationModel, setMutationModel] = useState("xgb_pseudoseq");
+  const [mutationAllele, setMutationAllele] = useState("HLA-A*02:01");
   
   // Sequence Alignment State
   const [sequence1, setSequence1] = useState("");
@@ -145,6 +147,7 @@ export default function AnalysisTools() {
       position: mutationPosition,
       newAminoAcid,
       model: mutationModel as any,
+      mhcAllele: mutationAllele,
     });
   };
 
@@ -243,18 +246,20 @@ export default function AnalysisTools() {
                 </div>
 
                 <div>
-                  <Label htmlFor="mutation-model">Model</Label>
-                  <Select value={mutationModel} onValueChange={setMutationModel}>
-                    <SelectTrigger data-testid="select-mutation-model">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="xgb_pseudoseq">XGBoost + allele pseudo-sequence</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    One trained model is available; the five architecture slots this app used to
-                    list were placeholders and have been removed.
+                  <Label>HLA allele</Label>
+                  <div className="mt-2">
+                    <AlleleSelect
+                      value={mutationAllele}
+                      onChange={setMutationAllele}
+                      testId="select-mutation-allele"
+                    />
+                  </div>
+                  {/* Both the original and mutated peptide are scored against
+                      this allele. Previously no allele was sent and scoring fell
+                      back to HLA-A*02:01 without telling the user -- unacceptable
+                      in a before/after comparison. */}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Both the original and mutated peptide are scored against this allele.
                   </p>
                 </div>
 

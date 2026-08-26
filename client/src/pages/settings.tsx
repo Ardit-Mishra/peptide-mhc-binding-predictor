@@ -16,7 +16,7 @@ export default function SettingsPage() {
   const [apiKey, setApiKey] = useState("");
   const [notifications, setNotifications] = useState(true);
   const [autoSave, setAutoSave] = useState(true);
-  const [defaultModel, setDefaultModel] = useState("cnn_bilstm_best");
+  const [defaultModel, setDefaultModel] = useState("xgb_pseudoseq");
   const [batchSize, setBatchSize] = useState("32");
   const [cacheEnabled, setCacheEnabled] = useState(true);
 
@@ -114,7 +114,7 @@ export default function SettingsPage() {
                     <SelectValue placeholder="Select model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cnn">Demonstration scorer (illustrative, not a trained model)</SelectItem>
+                    <SelectItem value="xgb_pseudoseq">XGBoost + allele pseudo-sequence</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -166,24 +166,19 @@ export default function SettingsPage() {
               <div className="space-y-3">
                 <Label>Model Status</Label>
                 <p className="text-xs text-muted-foreground">
-                  These are UI-selectable demo slots, not trained models — none has a real
-                  accuracy to report. All five route through the same deterministic illustrative
-                  scorer.
+                  One trained model is served, client-side. The five architecture slots this
+                  app used to list were never trained and have been removed.
                 </p>
                 <div className="grid gap-3">
-                  {["CNN", "BiLSTM", "CNN+BiLSTM", "CNN+BiLSTM Best", "Transformer"].map((name) => (
-                    <div key={name} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <span className="font-medium">{name}</span>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                          demo slot
-                        </Badge>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        No trained model — N/A
-                      </span>
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <span className="font-medium">XGBoost + allele pseudo-sequence</span>
+                      <Badge variant="secondary">trained</Badge>
                     </div>
-                  ))}
+                    <span className="text-sm text-muted-foreground">
+                      Held-out ROC-AUC 0.919
+                    </span>
+                  </div>
                 </div>
               </div>
 

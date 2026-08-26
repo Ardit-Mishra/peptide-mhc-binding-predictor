@@ -160,6 +160,9 @@ export const batchUploadSchema = z.object({
   name: z.string().min(1),
   models: z.array(modelEnum),
   sequences: z.array(peptideSchema),
+  // Required, not optional. Scoring a batch against a silently-assumed allele
+  // produces numbers that look like results and are not.
+  mhcAllele: z.string().min(1, "Select an HLA allele"),
 });
 
 export const mutationRequestSchema = z.object({

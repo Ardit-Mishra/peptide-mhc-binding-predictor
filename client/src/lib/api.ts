@@ -3,7 +3,6 @@ import type { PredictRequest, PredictResponse } from "@shared/schema";
 
 export interface SystemStatus {
   id: string;
-  googleDriveConnected: boolean;
   modelsLoaded: number;
   datasetAccessible: boolean;
   lastSync: string | null;
@@ -47,7 +46,7 @@ export const api = {
     return response.json();
   },
 
-  getHealth: async (): Promise<{ status: string; googleDriveConnected: boolean; modelsLoaded: number; cacheSize: number }> => {
+  getHealth: async (): Promise<{ status: string; modelsLoaded: number; cacheSize: number }> => {
     const response = await apiRequest("GET", "/api/health");
     return response.json();
   },

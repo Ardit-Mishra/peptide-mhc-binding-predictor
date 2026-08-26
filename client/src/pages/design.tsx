@@ -88,7 +88,7 @@ export default function PeptideDesigner() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Peptide Designer</h1>
-          <p className="text-muted-foreground">Peptide design workspace (demonstration — outputs are illustrative, not AI-generated)</p>
+          <p className="text-muted-foreground">Random peptide generator scored by the trained model — not a generative or optimization method</p>
         </div>
       </div>
 
@@ -257,7 +257,7 @@ export default function PeptideDesigner() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-medium">Amino Acid Preferences</h4>
-                  <Badge variant="outline" className="text-xs">Illustrative — not computed from real binding data</Badge>
+                  <Badge variant="outline" className="text-xs">Static reference table — not computed from your results</Badge>
                 </div>
                 <div className="space-y-2">
                   {aminoAcidFrequencies.map((item, index) => (
