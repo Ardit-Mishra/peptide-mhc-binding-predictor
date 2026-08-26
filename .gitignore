@@ -149,3 +149,4 @@ server/public
 vite.config.ts.*
 *.tar.gz
 scripts/out/
+.vercel

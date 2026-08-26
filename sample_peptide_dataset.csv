@@ -11,7 +11,6 @@ NLVPMVATV,HLA-A*02:01,0.88,Tetramer Staining,IEDB,CMV pp65 epitope
 GLIYNRMGAV,HLA-A*02:01,0.12,Surface Plasmon Resonance,In-house,Non-binder control
 YLEPGPVTA,HLA-B*07:02,0.67,ELISPOT,Literature,HBV Core epitope
 FPRPWLHGL,HLA-B*07:02,0.91,Competitive Binding,IEDB,Strong viral epitope
-APRGPHGGAASGL,HLA-B*07:02,0.29,T-cell Activation,Literature,Long peptide - weak
 SPRRARSV,HLA-B*07:02,0.18,Competitive Binding,IEDB,Short peptide - non-binder
 LPRFPSSV,HLA-B*07:02,0.73,ELISPOT,In-house,Tumor antigen
 KPIVQYDNF,HLA-A*24:02,0.82,Tetramer Staining,IEDB,Strong Japanese population epitope
@@ -25,7 +24,6 @@ VSDGGPNLY,HLA-A*01:01,0.87,Tetramer Staining,IEDB,Strong melanoma epitope
 YSEHPTFTSQY,HLA-A*01:01,0.43,Surface Plasmon Resonance,Literature,Moderate 11-mer
 CTELKLSDY,HLA-A*01:01,0.16,Competitive Binding,In-house,Weak binder
 LPRRSGAAGA,HLA-C*07:01,0.52,ELISPOT,IEDB,HLA-C restricted epitope
-FRDYVDRFYKTL,HLA-C*07:01,0.31,T-cell Activation,Literature,Long HLA-C peptide
 AAGIGILTV,HLA-C*07:01,0.74,Competitive Binding,IEDB,Strong HLA-C binder
 KRWIILGLNK,HLA-C*07:01,0.19,Tetramer Staining,In-house,Non-binder
 FLKEKGGL,HLA-C*07:01,0.66,Surface Plasmon Resonance,Literature,Short strong binder

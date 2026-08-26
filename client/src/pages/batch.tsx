@@ -102,6 +102,20 @@ export default function BatchProcessing() {
       .filter(line => line && !line.startsWith('>'))
       .filter(line => /^[ACDEFGHIKLMNPQRSTVWY]+$/.test(line));
 
+    // The model encodes 8-11mers; anything else is rejected server-side as a
+    // whole-batch 400, so catch it here and name the offending sequences.
+    const badLength = sequenceLines.filter((q) => q.length < 8 || q.length > 11);
+    if (badLength.length > 0) {
+      toast({
+        title: "Unsupported peptide length",
+        description:
+          `MHC class I peptides are 8-11 residues. Remove or trim: ` +
+          `${badLength.slice(0, 3).join(", ")}${badLength.length > 3 ? ` (+${badLength.length - 3} more)` : ""}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (sequenceLines.length === 0) {
       toast({
         title: "Error",

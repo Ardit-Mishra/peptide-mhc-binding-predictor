@@ -162,6 +162,7 @@ async function predict(body: unknown) {
     computeTime: `${computeTime}s`,
     ...MODEL_METRICS,
     mhcAllele: allele,
+    alleleSupportN: n ?? null,
     alleleSupport: n
       ? `${n.toLocaleString()} training measurements for ${allele}`
       : `No per-allele training count recorded for ${allele}`,
@@ -171,6 +172,11 @@ async function predict(body: unknown) {
 
 async function scoreFor(sequence: string, allele: string = DEFAULT_ALLELE) {
   const { predictor } = await loadModel();
+  // Without this guard an unknown allele encodes as an all-zero block and the
+  // model returns a confident-looking number for an allele it has never seen.
+  if (!predictor.hasAllele(allele)) {
+    throw new Error(`${allele} is not one of the ${PMHC_MODEL_CARD.alleles} trained alleles`);
+  }
   const { probability, margin } = predictor.predict(sequence, allele);
   return {
     sequence,
