@@ -1,80 +1,67 @@
+import { illustrativeScore, ILLUSTRATIVE_DISCLAIMER } from '../lib/illustrative-scorer';
+
 /**
- * Transformer Classifier for peptide-MHC binding prediction.
+ * "Transformer" demo placeholder — NOT a trained model.
  *
- * Architecture mirrors the PyTorch model trained in
- * 04_model_training_transformer_custom.ipynb:
- *   PositionalEncoding(d_model=20, max_len=15)
- *   TransformerEncoder(d_model=20, nhead=2, num_layers=2, dim_feedforward=64)
- *   Global average pooling over sequence positions
- *   Linear(20, 32) -> ReLU -> Dropout(0.1) -> Linear(32, 1) -> Sigmoid
+ * HONESTY NOTE: No Transformer architecture has ever been trained for this
+ * project. There is no checkpoint and no held-out evaluation behind this
+ * class. This class exists only as one of several UI-selectable demo
+ * "model" slots; every slot routes through the same deterministic
+ * illustrative-scoring heuristic (see ../lib/illustrative-scorer.ts) so
+ * results are transparent and reproducible, never randomly generated. There
+ * is no real speed/accuracy comparison between "model" slots to make.
  *
- * Self-attention allows the model to learn pairwise interactions between all
- * residue positions simultaneously, without the sequential processing constraint
- * of LSTMs. The compact configuration (2 layers, 2 heads) is appropriate for
- * the short input sequences (max 15 residues).
- *
- * Input: one-hot encoded peptide matrix of shape (15, 20)
- * Output: binding probability in [0, 1]
+ * Input: one-hot encoded peptide matrix of shape (15, 20) — kept only for
+ * illustration of what a real Transformer's preprocessing might look like;
+ * the encoded matrix is not actually consumed by any inference step.
  */
 export class TransformerClassifier {
   constructor() {}
 
   /**
-   * Returns performance metrics from model evaluation on the held-out test set.
+   * No trained model exists behind this class, so there is no real
+   * accuracy/AUC/sensitivity/specificity to report.
    */
   getMetrics() {
     return {
-      accuracy: 94.1,
-      validationAuc: 0.935,
-      sensitivity: 92.1,
-      specificity: 93.8,
-      trainingEpochs: 35,
-      batchSize: 128,
-      learningRate: 0.0001
+      trained: false,
+      disclaimer: ILLUSTRATIVE_DISCLAIMER,
     };
   }
 
   /**
-   * Encode a peptide sequence into a (15, 20) matrix for the Transformer.
-   *
-   * Unlike the CNN and BiLSTM models which use a (1, 15, 20) tensor with a
-   * channel dimension, the Transformer operates directly on the (seq_len, d_model)
-   * representation. Positional encoding is added by the model itself.
+   * Encode a peptide sequence into a (15, 20) matrix.
+   * Illustrative only — not consumed by any real model.
    */
   preprocess(sequence: string): number[][] {
     const aaList = 'ACDEFGHIKLMNPQRSTVWY';
     const maxLen = 15;
     const matrix = Array(maxLen).fill(null).map(() => Array(20).fill(0));
-    
+
     for (let i = 0; i < Math.min(sequence.length, maxLen); i++) {
       const aaIndex = aaList.indexOf(sequence[i]);
       if (aaIndex >= 0) {
         matrix[i][aaIndex] = 1;
       }
     }
-    
+
     return matrix;
   }
 
   /**
-   * Run binding prediction for a single peptide sequence.
+   * Return an illustrative demo score for a peptide sequence.
    *
-   * The Transformer achieves the fastest inference of all models due to
-   * parallelizable self-attention (no sequential bottleneck). Simulated
-   * latency reflects this characteristic (60-160ms).
+   * This is NOT a forward pass of a trained Transformer — no such model
+   * exists. It is the same deterministic function of the sequence's
+   * chemistry used by every demo "model" slot (see
+   * ../lib/illustrative-scorer.ts). The same sequence always returns the
+   * same result; there is no simulated compute time.
    */
   async predictBinding(sequence: string): Promise<{ probability: number; confidence: number; computeTime: number }> {
     const startTime = Date.now();
-    
-    await new Promise(resolve => setTimeout(resolve, 60 + Math.random() * 100));
-    
-    const baseProbability = 0.8 + (Math.random() - 0.5) * 0.3;
-    const confidence = 0.9 + Math.random() * 0.08;
-    
-    const probability = Math.max(0, Math.min(1, baseProbability));
-    const finalConfidence = Math.max(0.7, Math.min(0.99, confidence));
+    const { probability, confidence } = illustrativeScore(sequence);
     const computeTime = Date.now() - startTime;
-    
-    return { probability, confidence: finalConfidence, computeTime };
+
+    return { probability, confidence, computeTime };
   }
 }

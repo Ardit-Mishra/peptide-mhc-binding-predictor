@@ -72,49 +72,6 @@ export default function PeptideDesigner() {
     });
   };
 
-  // Mock design results
-  const mockDesignResults = [
-    {
-      sequence: "GILGFVFTL",
-      predictedAffinity: 0.89,
-      confidence: 0.94,
-      rank: "High Binder",
-      properties: {
-        hydrophobicity: 0.72,
-        charge: 0,
-        stability: 0.85,
-        immunogenicity: 0.78
-      },
-      strategy: "Optimized for high binding affinity"
-    },
-    {
-      sequence: "NLVPMVATV",
-      predictedAffinity: 0.85,
-      confidence: 0.91,
-      rank: "High Binder", 
-      properties: {
-        hydrophobicity: 0.68,
-        charge: 0,
-        stability: 0.82,
-        immunogenicity: 0.81
-      },
-      strategy: "Balanced binding and immunogenicity"
-    },
-    {
-      sequence: "KTWGQYWQV",
-      predictedAffinity: 0.82,
-      confidence: 0.88,
-      rank: "Medium Binder",
-      properties: {
-        hydrophobicity: 0.55,
-        charge: 1,
-        stability: 0.79,
-        immunogenicity: 0.85
-      },
-      strategy: "Enhanced immunogenic potential"
-    }
-  ];
-
   const aminoAcidFrequencies = [
     { aa: 'L', frequency: 18.2, preference: 'Anchor P2' },
     { aa: 'V', frequency: 15.7, preference: 'Anchor P9' },
@@ -131,7 +88,7 @@ export default function PeptideDesigner() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Peptide Designer</h1>
-          <p className="text-muted-foreground">AI-powered peptide optimization for enhanced MHC binding</p>
+          <p className="text-muted-foreground">Peptide design workspace (demonstration — outputs are illustrative, not AI-generated)</p>
         </div>
       </div>
 
@@ -229,74 +186,64 @@ export default function PeptideDesigner() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Sparkles className="w-5 h-5" />
-              <span>Optimized Peptides</span>
+              <span>Generated Peptides</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {mockDesignResults.map((result, index) => (
-                <div key={index} className="border border-border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex items-center space-x-3">
-                      <span className="font-mono text-lg font-bold">{result.sequence}</span>
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={() => copyToClipboard(result.sequence)}
-                        data-testid={`button-copy-${index}`}
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
+            <p className="text-xs text-muted-foreground mb-4">
+              Demonstration output: the server randomly samples candidate sequences of your chosen length and
+              scores them with the same simulated backend used elsewhere in this demo. This is not AI-optimized
+              design and not a trained-model prediction.
+            </p>
+            {designMutation.data?.suggestions?.length ? (
+              <div className="space-y-4">
+                {designMutation.data.suggestions.map((result: any, index: number) => (
+                  <div key={index} className="border border-border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center space-x-3">
+                        <span className="font-mono text-lg font-bold">{result.sequence}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => copyToClipboard(result.sequence)}
+                          data-testid={`button-copy-${index}`}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge
+                          className={result.rank === "High Binder" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
+                        >
+                          {result.rank}
+                        </Badge>
+                        <span className="text-sm font-medium">{(result.predictedAffinity * 100).toFixed(1)}%</span>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge 
-                        className={result.rank === "High Binder" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
-                      >
-                        {result.rank}
-                      </Badge>
-                      <span className="text-sm font-medium">{(result.predictedAffinity * 100).toFixed(1)}%</span>
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-4 gap-4 mb-3">
-                    <div className="text-center">
-                      <div className="text-sm text-muted-foreground">Affinity</div>
-                      <div className="font-semibold">{result.predictedAffinity.toFixed(3)}</div>
+                    <div className="grid grid-cols-2 gap-4 mb-3">
+                      <div className="text-center">
+                        <div className="text-sm text-muted-foreground">Affinity (simulated)</div>
+                        <div className="font-semibold">{result.predictedAffinity.toFixed(3)}</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-sm text-muted-foreground">Confidence (simulated)</div>
+                        <div className="font-semibold">{result.confidence.toFixed(3)}</div>
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-sm text-muted-foreground">Confidence</div>
-                      <div className="font-semibold">{result.confidence.toFixed(3)}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm text-muted-foreground">Stability</div>
-                      <div className="font-semibold">{result.properties.stability.toFixed(3)}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-sm text-muted-foreground">Immunogen.</div>
-                      <div className="font-semibold">{result.properties.immunogenicity.toFixed(3)}</div>
-                    </div>
-                  </div>
 
-                  <div className="text-sm text-muted-foreground">
-                    <strong>Strategy:</strong> {result.strategy}
-                  </div>
-
-                  <div className="flex justify-between items-center mt-3">
-                    <div className="flex space-x-2">
-                      <Badge variant="outline">
-                        Hydrophobicity: {result.properties.hydrophobicity.toFixed(2)}
-                      </Badge>
-                      <Badge variant="outline">
-                        Charge: {result.properties.charge}
-                      </Badge>
+                    <div className="text-sm text-muted-foreground">
+                      <strong>Strategy:</strong> {result.designStrategy}
                     </div>
-                    <Button size="sm" variant="outline" data-testid={`button-analyze-${index}`}>
-                      Analyze Further
-                    </Button>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground border border-dashed border-border rounded-lg p-6 text-center">
+                No peptides generated yet. Click "Generate Peptides" to sample candidate sequences of your chosen
+                length and score them with the demonstration backend.
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -308,7 +255,10 @@ export default function PeptideDesigner() {
           <CardContent>
             <div className="grid grid-cols-2 gap-6">
               <div>
-                <h4 className="font-medium mb-3">Amino Acid Preferences</h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-medium">Amino Acid Preferences</h4>
+                  <Badge variant="outline" className="text-xs">Illustrative — not computed from real binding data</Badge>
+                </div>
                 <div className="space-y-2">
                   {aminoAcidFrequencies.map((item, index) => (
                     <div key={index} className="flex justify-between items-center">

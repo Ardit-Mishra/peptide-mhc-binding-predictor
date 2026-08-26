@@ -1,28 +1,20 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { BarChart3, TrendingUp, Zap, Target, Activity, Layers } from "lucide-react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ScatterChart, Scatter, Cell, PieChart, Pie, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
+import { BarChart3, TrendingUp, Info } from "lucide-react";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Visualization() {
   const [selectedDataset, setSelectedDataset] = useState("recent");
   const [selectedMetric, setSelectedMetric] = useState("probability");
 
-  // Fetch visualization data
-  const { data: chartData } = useQuery({
-    queryKey: ['/api/visualize/data', selectedDataset, selectedMetric],
-  });
-
-  // Mock data for demonstration
-  const mockModelComparison = [
-    { model: 'CNN', accuracy: 92.4, speed: 95, f1Score: 88.2 },
-    { model: 'BiLSTM', accuracy: 89.7, speed: 72, f1Score: 91.1 },
-    { model: 'CNN+BiLSTM Best', accuracy: 95.8, speed: 65, f1Score: 94.5 },
-    { model: 'CNN+BiLSTM', accuracy: 93.2, speed: 68, f1Score: 92.8 },
-    { model: 'Transformer', accuracy: 96.3, speed: 58, f1Score: 95.2 },
+  // Real offline held-out evaluation numbers for the model being integrated into this app.
+  // These are NOT produced by the live demo — they come from offline training/evaluation
+  // in a separate ML pipeline (peptide-grouped, leak-free split).
+  const realHeldOutEval = [
+    { model: 'XGBoost (peptide-grouped split)', rocAuc: 0.919 },
+    { model: 'ESM-2 150M + LoRA', rocAuc: 0.922, prAuc: 0.827 },
   ];
 
   const mockPredictionDistribution = [
@@ -43,16 +35,6 @@ export default function Visualization() {
     { length: 14, count: 23 },
     { length: 15, count: 12 },
   ];
-
-  const mockConfidenceHeatmap = [
-    { model: 'CNN', high: 65, medium: 25, low: 10 },
-    { model: 'BiLSTM', high: 72, medium: 20, low: 8 },
-    { model: 'CNN+BiLSTM Best', high: 85, medium: 12, low: 3 },
-    { model: 'CNN+BiLSTM', high: 78, medium: 18, low: 4 },
-    { model: 'Transformer', high: 88, medium: 10, low: 2 },
-  ];
-
-  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
     <div className="space-y-6">
@@ -87,81 +69,41 @@ export default function Visualization() {
         </div>
       </div>
 
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Target className="w-8 h-8 text-blue-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Total Predictions</p>
-                <p className="text-2xl font-bold text-foreground">2,847</p>
-                <p className="text-xs text-green-500">+12% this week</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Activity className="w-8 h-8 text-green-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Confidence</p>
-                <p className="text-2xl font-bold text-foreground">87.3%</p>
-                <p className="text-xs text-green-500">+2.1% improvement</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Zap className="w-8 h-8 text-yellow-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Speed</p>
-                <p className="text-2xl font-bold text-foreground">1.2s</p>
-                <p className="text-xs text-green-500">15% faster</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Layers className="w-8 h-8 text-purple-500" />
-              <div>
-                <p className="text-sm text-muted-foreground">Models Active</p>
-                <p className="text-2xl font-bold text-foreground">5/5</p>
-                <p className="text-xs text-green-500">All operational</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Usage stats: no real usage history exists in this demo build. */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center space-x-2 text-muted-foreground">
+            <Info className="w-5 h-5 shrink-0" />
+            <p className="text-sm">
+              No usage history — this is a demonstration build with no real prediction traffic.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Model Performance Comparison */}
+        {/* Real held-out evaluation of the model being integrated (offline, not live app output) */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <BarChart3 className="w-5 h-5" />
-              <span>Model Performance Comparison</span>
+              <span>Held-Out Evaluation (Offline)</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockModelComparison}>
+            <p className="text-xs text-muted-foreground mb-3">
+              Offline held-out evaluation of the model being integrated (peptide-grouped, leak-free split) —
+              not the live output of this demo app.
+            </p>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={realHeldOutEval}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="model" />
-                <YAxis />
+                <XAxis dataKey="model" tick={{ fontSize: 11 }} />
+                <YAxis domain={[0, 1]} />
                 <Tooltip />
-                <Bar dataKey="accuracy" fill="#3b82f6" name="Accuracy %" />
-                <Bar dataKey="f1Score" fill="#10b981" name="F1 Score %" />
+                <Bar dataKey="rocAuc" fill="#3b82f6" name="ROC-AUC" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -176,7 +118,10 @@ export default function Visualization() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <p className="text-xs text-muted-foreground mb-3">
+              Illustrative sample data, not from real predictions.
+            </p>
+            <ResponsiveContainer width="100%" height={260}>
               <BarChart data={mockPredictionDistribution}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="range" />
@@ -189,12 +134,15 @@ export default function Visualization() {
         </Card>
 
         {/* Sequence Length Analysis */}
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Sequence Length Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <p className="text-xs text-muted-foreground mb-3">
+              Illustrative sample data, not from real predictions.
+            </p>
+            <ResponsiveContainer width="100%" height={260}>
               <LineChart data={mockSequenceLength}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="length" />
@@ -203,58 +151,6 @@ export default function Visualization() {
                 <Line type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={3} />
               </LineChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Model Speed vs Accuracy */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Speed vs Accuracy Trade-off</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <ScatterChart data={mockModelComparison}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="speed" name="Speed Score" />
-                <YAxis dataKey="accuracy" name="Accuracy %" />
-                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter name="Models" data={mockModelComparison} fill="#ef4444">
-                  {mockModelComparison.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={colors[index]} />
-                  ))}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        
-        {/* Confidence Level Breakdown */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Model Confidence Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-5 gap-4">
-              {mockConfidenceHeatmap.map((model, index) => (
-                <div key={model.model} className="text-center">
-                  <h4 className="font-medium mb-2">{model.model}</h4>
-                  <div className="space-y-2">
-                    <div className="bg-green-100 rounded-lg p-2">
-                      <div className="text-green-800 font-semibold">{model.high}%</div>
-                      <div className="text-xs text-green-600">High Confidence</div>
-                    </div>
-                    <div className="bg-yellow-100 rounded-lg p-2">
-                      <div className="text-yellow-800 font-semibold">{model.medium}%</div>
-                      <div className="text-xs text-yellow-600">Medium Confidence</div>
-                    </div>
-                    <div className="bg-red-100 rounded-lg p-2">
-                      <div className="text-red-800 font-semibold">{model.low}%</div>
-                      <div className="text-xs text-red-600">Low Confidence</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
       </div>

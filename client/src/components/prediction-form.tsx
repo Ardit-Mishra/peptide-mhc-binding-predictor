@@ -128,11 +128,12 @@ export default function PredictionForm({
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger data-testid="select-mhc-allele">
-                        <SelectValue placeholder="Auto-detect from sequence" />
+                        <SelectValue placeholder="None selected (defaults to HLA-A*02:01)" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="auto">Auto-detect from sequence</SelectItem>
+                      {/* HONESTY NOTE: no allele auto-detection exists in this app -- omitting a
+                          selection here just falls back to a fixed default (see server/routes.ts). */}
                       <SelectItem value="HLA-A*02:01">HLA-A*02:01</SelectItem>
                       <SelectItem value="HLA-A*01:01">HLA-A*01:01</SelectItem>
                       <SelectItem value="HLA-B*07:02">HLA-B*07:02</SelectItem>

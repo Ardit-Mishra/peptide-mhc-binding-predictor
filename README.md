@@ -4,11 +4,21 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-20-green.svg)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-Models-ee4c2c.svg)](https://pytorch.org/)
+[![Demo](https://img.shields.io/badge/Predictions-Illustrative_Demo-orange.svg)](#model-performance)
 
-A full-stack web application for predicting peptide-MHC (Major Histocompatibility Complex) binding affinity using deep learning. The platform serves five trained neural network architectures through a modern research interface, supporting single-sequence prediction, batch processing, mutation impact analysis, and peptide design.
+A full-stack web application demonstrating a research interface for peptide-MHC (Major Histocompatibility Complex) binding prediction, supporting single-sequence prediction, batch processing, mutation impact analysis, and peptide design.
 
 **Live instance:** [peptide.arditmishra.com](https://peptide.arditmishra.com)
+
+> **This is a demonstration application. Live predictions are illustrative placeholder outputs, not
+> the output of a trained model.** The UI exposes five prediction profiles (CNN, BiLSTM,
+> CNN+BiLSTM, CNN+BiLSTM Best, Transformer) corresponding to different model archetypes, but none of
+> them is currently backed by trained weights -- scores are generated with `Math.random()` behind an
+> artificial delay. A real model has been trained **offline**, separately from this app (XGBoost
+> baseline: held-out ROC-AUC 0.919; ESM-2 150M + LoRA: held-out ROC-AUC 0.922 / PR-AUC 0.827, on a
+> leak-free peptide-grouped split of MHCflurry curated data). Integrating that model into this
+> running service is a separate, in-progress effort -- see [BENCHMARKS.md](BENCHMARKS.md) for
+> details.
 
 ---
 
@@ -42,10 +52,13 @@ This tool provides researchers with an accessible interface to run predictions w
 ## Features
 
 ### Prediction Engine
-- Five deep learning model architectures: CNN, BiLSTM, CNN+BiLSTM, CNN+BiLSTM (optimized), and Transformer
+- A demonstration interface with five illustrative prediction profiles corresponding to different
+  model archetypes -- CNN, BiLSTM, CNN+BiLSTM, CNN+BiLSTM (optimized), and Transformer -- none of
+  which is currently backed by trained weights. Real model integration (XGBoost / ESM-2+LoRA, held-out
+  ROC-AUC 0.919 / 0.922) is in progress separately; see [BENCHMARKS.md](BENCHMARKS.md).
 - Input validation for standard amino acid sequences (8--15 residues)
-- Binding probability, confidence score, and strength classification per prediction
-- Model performance metrics displayed alongside results
+- Binding probability, confidence score, and strength classification per prediction (illustrative,
+  not model output)
 
 ### Batch Processing
 - Upload multiple sequences for parallel prediction across selected models
@@ -87,12 +100,12 @@ Server (Express.js + TypeScript)
     |
     +-- REST API (routes.ts)
     +-- Storage Layer (storage.ts, in-memory)
-    +-- Model Inference (server/models/)
-    +-- Model Loader (server/services/model-loader.ts)
+    +-- Model Inference (server/models/, Math.random()-based, illustrative only)
+    +-- Model Loader (server/services/model-loader.ts, checks file presence only)
     +-- Google Drive Integration (server/services/google-drive.ts)
     |
     v
-Pre-trained PyTorch Weights (models/*.pt)
+.pt files present on disk (models/*.pt) -- not loaded into an inference engine
 ```
 
 ### Frontend
@@ -110,23 +123,25 @@ Pre-trained PyTorch Weights (models/*.pt)
 - **Validation**: Zod schemas shared between client and server
 - **ORM**: Drizzle ORM (PostgreSQL schema definitions)
 - **Storage**: In-memory with interface abstraction for database migration
-- **Model weights**: PyTorch `.pt` files loaded at server startup
+- **Model weights**: PyTorch `.pt` files present in `models/`; the server checks for their existence at startup but does not load or read them -- they are not used for inference
 
 For detailed architecture documentation, see [docs/architecture.md](docs/architecture.md).
 
 ## Model Performance
 
-All models were trained on peptide-MHC binding datasets and evaluated using held-out test sets.
+The five architectures named in the UI were never trained -- there is no leaderboard to report for
+this running app. The only real numbers associated with this project come from a model trained
+**offline**, separately, and not yet wired into this service:
 
-| Model | Architecture | Accuracy | AUC-ROC | Sensitivity | Specificity |
-|-------|-------------|----------|---------|-------------|-------------|
-| CNN | 2-layer CNN with BatchNorm | 92.4% | 0.914 | 89.2% | 91.7% |
-| BiLSTM | CNN + Bidirectional LSTM | 89.7% | 0.892 | 87.5% | 89.3% |
-| CNN+BiLSTM | Hybrid CNN-BiLSTM | 93.2% | 0.925 | 91.4% | 94.3% |
-| CNN+BiLSTM Best | Optimized hybrid | 94.2% | 0.941 | 92.8% | 93.5% |
-| Transformer | 2-layer encoder, 2 heads | 94.1% | 0.935 | 92.1% | 93.8% |
+| Model | ROC-AUC (held-out) | PR-AUC (held-out) |
+|-------|---------------------|--------------------|
+| XGBoost baseline | 0.919 | -- |
+| ESM-2 150M + LoRA | 0.922 | 0.827 |
 
-For training details, hyperparameters, and methodology, see [docs/model-methodology.md](docs/model-methodology.md).
+Evaluated on a leak-free peptide-grouped split (test-set peptides never appear in training) of
+MHCflurry curated data, with allele pseudo-sequence conditioning. These are offline held-out
+evaluation numbers of a model currently being integrated -- not the output of the live app. See
+[BENCHMARKS.md](BENCHMARKS.md).
 
 ## Installation
 
@@ -221,22 +236,28 @@ Content-Type: application/json
 }
 ```
 
-**Response:**
+**Response (actual current shape):**
 ```json
 {
   "sequence": "SIINFEKL",
-  "model": "TRANSFORMER v2.1",
+  "model": "Illustrative Demo Scorer (Transformer slot — no trained model)",
   "probability": 0.8723,
-  "confidence": 93.4,
+  "confidence": 65.0,
   "rank": "Strong",
-  "computeTime": "0.15s",
-  "trainingAcc": "94.1%",
-  "validationAuc": "0.935",
-  "sensitivity": "92.1%",
-  "specificity": "93.8%",
+  "computeTime": "0.00s",
+  "trainingAcc": "N/A (illustrative demo — no trained model)",
+  "validationAuc": "N/A (offline eval of a separate model being integrated: XGBoost ROC-AUC 0.919 / ESM-2+LoRA ROC-AUC 0.922 — not this app's output)",
+  "sensitivity": "N/A (illustrative demo — no trained model)",
+  "specificity": "N/A (illustrative demo — no trained model)",
   "mhcAllele": "HLA-A*02:01"
 }
 ```
+
+`probability` and `confidence` come from the deterministic illustrative scorer
+(`server/lib/illustrative-scorer.ts`) -- a function of sequence chemistry, not a trained model's
+output. `trainingAcc`, `validationAuc`, `sensitivity`, and `specificity` are honest `"N/A"`
+placeholder strings, not hardcoded per-model numbers -- no trained model exists to report these
+for. Do not treat this response shape as evidence of model performance.
 
 ### Batch Processing
 ```
@@ -319,11 +340,11 @@ peptide-mhc-predictor/
 │   │   ├── bilstm.ts               # CNN+BiLSTM classifier
 │   │   └── transformer.ts          # Transformer classifier
 │   └── services/                    # External service integrations
-│       ├── model-loader.ts          # Model weight loading and caching
+│       ├── model-loader.ts          # Checks .pt file presence at startup only (no loading)
 │       └── google-drive.ts          # Google Drive API client
 ├── shared/                          # Shared code (client + server)
 │   └── schema.ts                    # Database schema and API types (Drizzle + Zod)
-├── models/                          # Pre-trained PyTorch weights (.pt)
+├── models/                          # .pt files present on disk; not loaded for inference (see BENCHMARKS.md)
 ├── docs/                            # Extended documentation
 │   ├── architecture.md              # System architecture details
 │   └── model-methodology.md         # Training methodology and evaluation
@@ -340,15 +361,14 @@ peptide-mhc-predictor/
 
 ### Model Training
 
-The Jupyter notebooks used to train each model architecture are maintained separately. The training pipeline follows this structure:
+The CNN, BiLSTM, CNN+BiLSTM, and Transformer architectures referenced in the UI were never trained
+-- no notebooks for them exist in or alongside this repository, and any prior claim that they did
+was inaccurate.
 
-- `01_data_ingestion.ipynb` -- Data loading, cleaning, and preprocessing
-- `04_model_training_cnn.ipynb` -- CNN model training and evaluation
-- `04_model_training_bilstm.ipynb` -- BiLSTM model training and evaluation
-- `04_model_training_cnn_bilstm.ipynb` -- CNN+BiLSTM hybrid training
-- `04_model_training_transformer_custom.ipynb` -- Transformer model training
-
-To add training notebooks to the repository, place them in a `notebooks/` directory.
+A real allele-conditioned model (XGBoost baseline and ESM-2 150M + LoRA) has been trained **offline**
+in a separate repository (`../ml-training/peptide-mhc`), using MHCflurry curated data with a
+leak-free peptide-grouped split. See [BENCHMARKS.md](BENCHMARKS.md) for the held-out results.
+Integrating that model into this app is a separate, in-progress effort.
 
 ### Input Encoding
 
@@ -359,9 +379,15 @@ All models use the same preprocessing pipeline:
 
 ### Pre-trained Weights
 
-Model weight files (`.pt` format) are stored in the `models/` directory. These are standard PyTorch state dictionaries that can be loaded in Python for use in custom pipelines. The web application validates weight file presence at startup and uses the model architectures defined in `server/models/` for inference wrapping.
+Files with a `.pt` extension are present in the `models/` directory, but they are **prop files, not
+active model weights** -- the server only checks that they exist at startup; it never loads, reads,
+or executes them. `server/models/*.ts` produce prediction scores using `Math.random()` behind an
+artificial delay, entirely independent of anything in `models/`.
 
-Note: The Node.js server does not execute PyTorch operations directly. The current inference pipeline wraps model architecture definitions with simulated forward passes for demonstration. For production-grade inference with actual tensor computation, integrate a Python inference backend or convert models to ONNX format.
+Note: The Node.js server does not execute PyTorch operations at all, and the current inference
+pipeline does not wrap any real, trained model -- it is a demonstration path only. Serving the real
+offline-trained model (see [BENCHMARKS.md](BENCHMARKS.md)) will require a genuine Python inference
+backend or an ONNX export, and is tracked as a separate effort.
 
 ### Environment Reproduction
 
@@ -387,15 +413,20 @@ Contributions are welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ## Citation
 
-If you use this software in your research, please cite:
+This repository is a demonstration application -- it does not ship a validated ML system, and its
+live predictions should not be cited as research results. If you reference it, please cite it as
+such:
 
 ```bibtex
 @software{mishra2025peptide,
-  title   = {Peptide-MHC Binding Predictor},
+  title   = {Peptide-MHC Binding Predictor (Demonstration UI)},
   author  = {Mishra, Ardit},
   year    = {2025},
   url     = {https://github.com/arditmishra/peptide-mhc-predictor},
-  license = {MIT}
+  license = {MIT},
+  note    = {Demonstration interface with illustrative predictions; no trained model is
+             currently served. A real offline-trained model (XGBoost / ESM-2+LoRA, held-out
+             ROC-AUC 0.919 / 0.922) is being integrated separately.}
 }
 ```
 

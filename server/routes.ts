@@ -16,9 +16,31 @@ import {
   type MutationRequest,
   type DesignRequest
 } from "@shared/schema";
-import { CNNClassifier } from "./models/cnn";
-import { CNNBiLSTMClassifier } from "./models/bilstm";
-import { TransformerClassifier } from "./models/transformer";
+import { illustrativeScore, ILLUSTRATIVE_DISCLAIMER, OFFLINE_MODEL_EVALUATION } from "./lib/illustrative-scorer";
+
+// HONESTY NOTE: This app does not serve a trained peptide-MHC binding
+// model. Every "model" name below is a UI-selectable demo slot; all of
+// them route through the same deterministic illustrative scorer in
+// ./lib/illustrative-scorer.ts. None of the numbers surfaced from these
+// endpoints should be read as a real trained model's performance.
+const DEMO_MODEL_LABELS: Record<string, string> = {
+  cnn: "Illustrative Demo Scorer (CNN slot — no trained model)",
+  bilstm: "Illustrative Demo Scorer (BiLSTM slot — no trained model)",
+  cnn_bilstm_best: "Illustrative Demo Scorer (CNN+BiLSTM Best slot — no trained model)",
+  cnn_bilstm: "Illustrative Demo Scorer (CNN+BiLSTM slot — no trained model)",
+  transformer: "Illustrative Demo Scorer (Transformer slot — no trained model)",
+};
+
+// No trained model exists, so there are no real per-prediction training/
+// validation statistics to report. These honest placeholder strings are
+// used for every demo slot -- never fabricated per-model numbers.
+const NO_TRAINED_MODEL_METRICS = {
+  trainingAcc: "N/A (illustrative demo — no trained model)",
+  validationAuc:
+    "N/A (offline eval of a separate model being integrated: XGBoost ROC-AUC 0.919 / ESM-2+LoRA ROC-AUC 0.922 — not this app's output)",
+  sensitivity: "N/A (illustrative demo — no trained model)",
+  specificity: "N/A (illustrative demo — no trained model)",
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize models asynchronously in the background with timeout protection
@@ -108,7 +130,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const driveConnected = googleDriveService.getConnectionStatus();
       const modelsLoaded = modelLoader.getLoadedModelsCount();
       const cacheSize = modelLoader.getCacheSize();
-      const totalModels = 5; // cnn, bilstm, cnn_bilstm_best, cnn_bilstm, transformer
+      // Demo scorer slots (cnn, bilstm, cnn_bilstm_best, cnn_bilstm, transformer).
+      // None of these are trained models -- see ILLUSTRATIVE_DISCLAIMER.
+      const totalModels = 5;
 
       // Update system status
       await storage.updateSystemStatus({
@@ -130,11 +154,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         ready: isReady,
+        disclaimer: ILLUSTRATIVE_DISCLAIMER,
         deployment: {
           ready: isReady,
-          phase: isReady ? "operational" : isHealthy ? "models_loaded" : "starting",
-          message: isReady ? "Service is fully operational" : 
-                   isHealthy ? "Models loaded, finalizing initialization" : 
+          phase: isReady ? "operational" : isHealthy ? "demo_slots_ready" : "starting",
+          message: isReady ? "Service is up and serving illustrative demo scores" :
+                   isHealthy ? "Demo scorer slots ready, finalizing initialization" :
                    "Service is starting up",
         },
         memory: {
@@ -143,6 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           external: Math.round(process.memoryUsage().external / 1024 / 1024),
         },
         models: {
+          note: "These are UI-selectable demo scorer slots, not trained models.",
           loaded: modelsLoaded,
           total: totalModels,
           ready: isHealthy,
@@ -199,48 +225,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Model performance endpoint
+  //
+  // HONESTY NOTE: This project does not currently serve any trained model,
+  // so there is no real per-architecture accuracy/AUC to report. This
+  // endpoint used to return a fabricated leaderboard (invented, inconsistent
+  // numbers per "model"); it now returns only the demo slots (clearly
+  // labeled as non-trained) plus the one real, honest number this project
+  // has -- from OFFLINE evaluation of a different model being integrated
+  // separately.
   app.get("/api/models/performance", async (req, res) => {
     try {
-      const cnnMetrics = new CNNClassifier().getMetrics();
-      const bilstmMetrics = new CNNBiLSTMClassifier().getMetrics();
-      const transformerMetrics = new TransformerClassifier().getMetrics();
-
       res.json({
-        cnn: {
-          name: "CNN",
-          accuracy: cnnMetrics.accuracy,
-          validationAuc: cnnMetrics.validationAuc,
-          speed: "Fast",
-          loaded: modelLoader.isModelLoaded('cnn')
-        },
-        bilstm: {
-          name: "BiLSTM",
-          accuracy: 87.8,
-          validationAuc: 0.875,
-          speed: "Medium",
-          loaded: modelLoader.isModelLoaded('bilstm')
-        },
-        cnn_bilstm_best: {
-          name: "CNN+BiLSTM Best",
-          accuracy: 94.2,
-          validationAuc: 0.941,
-          speed: "Medium",
-          loaded: modelLoader.isModelLoaded('cnn_bilstm_best')
-        },
-        cnn_bilstm: {
-          name: "CNN+BiLSTM",
-          accuracy: bilstmMetrics.accuracy,
-          validationAuc: bilstmMetrics.validationAuc,
-          speed: "Medium",
-          loaded: modelLoader.isModelLoaded('cnn_bilstm')
-        },
-        transformer: {
-          name: "Transformer",
-          accuracy: transformerMetrics.accuracy,
-          validationAuc: transformerMetrics.validationAuc,
-          speed: "Slow",
-          loaded: modelLoader.isModelLoaded('transformer')
-        }
+        disclaimer: ILLUSTRATIVE_DISCLAIMER,
+        offlineEvaluation: OFFLINE_MODEL_EVALUATION,
+        demoSlots: modelLoader.getModelMetadata().map((slot) => ({
+          key: slot.key,
+          name: slot.name,
+          trained: false,
+          loaded: modelLoader.isModelLoaded(slot.key),
+        })),
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to get model performance" });
@@ -255,37 +258,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const startTime = Date.now();
 
-      // Load the model if not already loaded
+      // Load the demo slot if not already loaded. No trained weights are
+      // ever loaded here -- see modelLoader's HONESTY NOTE.
       const model = await modelLoader.loadModel(modelName);
       if (!model) {
         return res.status(400).json({ message: `Model ${modelName} not available` });
       }
 
-      // Get model-specific metrics
-      let modelMetrics;
-      switch (modelName) {
-        case 'cnn':
-          modelMetrics = new CNNClassifier().getMetrics();
-          break;
-        case 'bilstm':
-          modelMetrics = { accuracy: 87.8, validationAuc: 0.875, sensitivity: 85.2, specificity: 88.1 };
-          break;
-        case 'cnn_bilstm_best':
-          modelMetrics = { accuracy: 94.2, validationAuc: 0.941, sensitivity: 92.8, specificity: 93.5 };
-          break;
-        case 'cnn_bilstm':
-          modelMetrics = new CNNBiLSTMClassifier().getMetrics();
-          break;
-        case 'transformer':
-          modelMetrics = new TransformerClassifier().getMetrics();
-          break;
-        default:
-          return res.status(400).json({ message: "Invalid model type" });
-      }
-
-      // Run prediction
+      // Run the illustrative demo scorer (deterministic, not a trained model)
       const { probability, confidence } = await model.predict(sequence);
-      
+
       const computeTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
       // Determine binding strength
@@ -293,21 +275,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (probability > 0.8) rank = "Strong";
       else if (probability > 0.5) rank = "Moderate";
 
-      // Auto-detect MHC allele if not provided (simplified logic)
-      const detectedMhcAllele = mhcAllele || "HLA-A*02:01";
+      // No allele auto-detection exists; this is a fixed fallback, not detection.
+      const defaultMhcAllele = mhcAllele || "HLA-A*02:01";
 
       const response: PredictResponse = {
         sequence,
-        model: `${modelName.toUpperCase()} v2.1`,
+        model: DEMO_MODEL_LABELS[modelName] ?? `Illustrative Demo Scorer (${modelName} slot)`,
         probability: parseFloat(probability.toFixed(4)),
         confidence: parseFloat((confidence * 100).toFixed(1)),
         rank,
         computeTime: `${computeTime}s`,
-        trainingAcc: `${modelMetrics.accuracy}%`,
-        validationAuc: modelMetrics.validationAuc.toFixed(3),
-        sensitivity: `${modelMetrics.sensitivity}%`,
-        specificity: `${modelMetrics.specificity}%`,
-        mhcAllele: detectedMhcAllele,
+        ...NO_TRAINED_MODEL_METRICS,
+        mhcAllele: defaultMhcAllele,
       };
 
       // Store prediction in memory
@@ -316,7 +295,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         model: modelName,
         probability,
         confidence,
-        mhcAllele: detectedMhcAllele,
+        mhcAllele: defaultMhcAllele,
         computeTime: parseFloat(computeTime),
       });
 
@@ -393,14 +372,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "pending",
       });
 
-      // Start processing in background (simplified for demo)
+      // Process in background. Each sequence gets a real (if illustrative,
+      // non-trained) deterministic score via illustrativeScore -- no more
+      // fake delay-then-string-literal "Mock results".
       setTimeout(async () => {
-        // Simulate processing
+        const results: Array<{ sequence: string; probability: number; confidence: number }> = [];
         for (let i = 0; i < validatedData.sequences.length; i++) {
-          await new Promise(resolve => setTimeout(resolve, 100)); // Simulate work
+          const sequence = validatedData.sequences[i];
+          results.push({ sequence, ...illustrativeScore(sequence) });
           await storage.updateBatchJobProgress(batchJob.id, i + 1);
         }
-        await storage.completeBatchJob(batchJob.id, { results: "Mock results" });
+        await storage.completeBatchJob(batchJob.id, {
+          disclaimer: ILLUSTRATIVE_DISCLAIMER,
+          results,
+        });
       }, 1000);
 
       res.json(batchJob);
@@ -496,197 +481,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Visualization Data Endpoints
+  //
+  // HONESTY NOTE: This used to return entirely invented, internally
+  // inconsistent per-"model" numbers (a different fabricated accuracy set
+  // than getMetrics() used elsewhere) plus fake distribution/sequence-length
+  // histograms with no dataset behind them. There is no live evaluation
+  // dataset wired up, so this now returns only the one real, honest
+  // evaluation this project has (from a separate model being integrated).
   app.get("/api/visualize/data/:dataset/:metric", async (req, res) => {
     try {
-      const { dataset, metric } = req.params;
-      
-      // Mock visualization data
-      const data = {
-        modelComparison: [
-          { model: 'CNN', accuracy: 92.4, speed: 95, f1Score: 88.2 },
-          { model: 'BiLSTM', accuracy: 89.7, speed: 72, f1Score: 91.1 },
-          { model: 'CNN+BiLSTM Best', accuracy: 95.8, speed: 65, f1Score: 94.5 },
-          { model: 'CNN+BiLSTM', accuracy: 93.2, speed: 68, f1Score: 92.8 },
-          { model: 'Transformer', accuracy: 96.3, speed: 58, f1Score: 95.2 },
-        ],
-        predictionDistribution: generateDistributionData(metric as string),
-        sequenceLength: generateSequenceLengthData(),
-      };
-      
-      res.json(data);
+      res.json({
+        disclaimer:
+          "No live evaluation dataset or trained model is wired up in this app. " +
+          "The only real numbers below are from offline evaluation of a separate model being integrated.",
+        offlineEvaluation: OFFLINE_MODEL_EVALUATION,
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to get visualization data" });
     }
   });
 
-  // Helper functions for visualization data
-  function generateDistributionData(metric: string) {
-    return [
-      { range: '0.0-0.2', count: 45, percentage: 15 },
-      { range: '0.2-0.4', count: 67, percentage: 22 },
-      { range: '0.4-0.6', count: 89, percentage: 30 },
-      { range: '0.6-0.8', count: 72, percentage: 24 },
-      { range: '0.8-1.0', count: 27, percentage: 9 },
-    ];
-  }
-
-  function generateSequenceLengthData() {
-    return [
-      { length: 8, count: 23 },
-      { length: 9, count: 45 },
-      { length: 10, count: 67 },
-      { length: 11, count: 89 },
-      { length: 12, count: 72 },
-      { length: 13, count: 45 },
-      { length: 14, count: 23 },
-      { length: 15, count: 12 },
-    ];
-  }
-
   async function getPrediction(sequence: string, modelName: string) {
-    const models = {
-      'cnn': new CNNClassifier(),
-      'bilstm': new CNNBiLSTMClassifier(),
-      'cnn_bilstm': new CNNBiLSTMClassifier(),
-      'cnn_bilstm_best': new CNNBiLSTMClassifier(),
-      'transformer': new TransformerClassifier(),
-    };
-
-    const model = models[modelName as keyof typeof models];
-    if (!model) {
+    if (!DEMO_MODEL_LABELS[modelName]) {
       throw new Error(`Model ${modelName} not found`);
     }
 
-    const prediction = await model.predictBinding(sequence);
+    const startTime = Date.now();
+    const { probability, confidence } = illustrativeScore(sequence);
+    const computeTime = Date.now() - startTime;
+
     return {
       sequence,
       model: modelName,
-      probability: prediction.probability,
-      confidence: prediction.confidence,
-      rank: prediction.probability > 0.8 ? "High Binder" : prediction.probability > 0.5 ? "Medium Binder" : "Low Binder",
-      computeTime: prediction.computeTime,
-      trainingAcc: (model.getMetrics().accuracy / 100).toFixed(3),
-      validationAuc: model.getMetrics().validationAuc.toFixed(3),
-      sensitivity: "0.892",
-      specificity: "0.847"
+      probability,
+      confidence,
+      rank: probability > 0.8 ? "High Binder" : probability > 0.5 ? "Medium Binder" : "Low Binder",
+      computeTime,
+      ...NO_TRAINED_MODEL_METRICS,
     };
   }
 
   async function generatePeptideDesigns(request: DesignRequest) {
-    // Mock peptide design algorithm
+    // HONESTY NOTE: This is a uniformly random sequence generator, not an
+    // AI-driven design/optimization algorithm. `request.strategy` is
+    // recorded but does not influence generation or scoring in any way.
     const aminoAcids = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V', 'W', 'Y'];
     const suggestions = [];
-    
+
     for (let i = 0; i < 3; i++) {
       let sequence = '';
       for (let j = 0; j < request.length; j++) {
         sequence += aminoAcids[Math.floor(Math.random() * aminoAcids.length)];
       }
-      
-      // Mock prediction for designed sequence
+
+      // Illustrative demo score for the randomly generated sequence.
       const prediction = await getPrediction(sequence, 'cnn_bilstm_best');
-      
+
       suggestions.push({
         sequence,
         predictedAffinity: prediction.probability,
         confidence: prediction.confidence,
         designStrategy: request.strategy,
         rank: prediction.rank,
+        disclaimer:
+          "Random sequence generator (demo) — not a trained generative/optimization model. " +
+          "The sequence is uniformly random; the score is illustrative, not from a trained model.",
       });
     }
-    
+
     return suggestions.sort((a, b) => b.predictedAffinity - a.predictedAffinity);
   }
 
 
   // Database Integration Endpoints
+  //
+  // HONESTY NOTE: This app has no real IEDB/UniProt/PDB integration -- no
+  // client for any of them exists anywhere in this codebase (only Google
+  // Drive is integrated, and only for an unused .pt-file download path).
+  // These endpoints previously fabricated "active" status, record counts,
+  // sync timestamps, and search results pointing at example.com. They now
+  // honestly report "not connected" and "not implemented" instead.
   app.get("/api/databases", async (req, res) => {
     try {
       const databases = [
-        {
-          id: "iedb",
-          name: "IEDB",
-          status: "active",
-          lastSync: new Date().toISOString(),
-          totalRecords: 1200000,
-          apiAvailable: true
-        },
-        {
-          id: "uniprot",
-          name: "UniProt",
-          status: "active", 
-          lastSync: new Date().toISOString(),
-          totalRecords: 245000000,
-          apiAvailable: true
-        },
-        {
-          id: "pdb",
-          name: "PDB",
-          status: "active",
-          lastSync: new Date().toISOString(),
-          totalRecords: 210000,
-          apiAvailable: true
-        }
+        { id: "iedb", name: "IEDB", status: "not_connected", apiAvailable: false },
+        { id: "uniprot", name: "UniProt", status: "not_connected", apiAvailable: false },
+        { id: "pdb", name: "PDB", status: "not_connected", apiAvailable: false },
       ];
-      res.json(databases);
+      res.json({
+        disclaimer: "No external database integrations are implemented in this app yet.",
+        databases,
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to get database status" });
     }
   });
 
   app.post("/api/databases/:dbId/search", async (req, res) => {
-    try {
-      const { dbId } = req.params;
-      const { query } = req.body;
-      
-      // Mock search results for demonstration
-      const searchResults = {
-        database: dbId,
-        query,
-        results: [
-          {
-            id: "entry_001",
-            title: `${query} binding data`,
-            type: "peptide-mhc",
-            score: 0.95,
-            url: `https://example.com/${dbId}/entry_001`
-          },
-          {
-            id: "entry_002", 
-            title: `${query} structural analysis`,
-            type: "structure",
-            score: 0.87,
-            url: `https://example.com/${dbId}/entry_002`
-          }
-        ],
-        totalFound: 42
-      };
-      
-      res.json(searchResults);
-    } catch (error) {
-      res.status(500).json({ message: "Database search failed" });
-    }
+    // No IEDB/UniProt/PDB client exists in this codebase -- honestly
+    // report not-implemented rather than returning fabricated results.
+    res.status(501).json({
+      message: "Database search is not implemented. No external database integration exists in this app.",
+    });
   });
 
   app.post("/api/databases/:dbId/import", async (req, res) => {
-    try {
-      const { dbId } = req.params;
-      const { dataType, filters } = req.body;
-      
-      // Mock import process
-      const importJob = {
-        id: `import_${Date.now()}`,
-        database: dbId,
-        dataType,
-        status: "started",
-        progress: 0,
-        estimatedCompletion: new Date(Date.now() + 5 * 60 * 1000).toISOString()
-      };
-      
-      res.json(importJob);
-    } catch (error) {
-      res.status(500).json({ message: "Data import failed" });
-    }
+    // No import pipeline exists in this codebase -- honestly report
+    // not-implemented rather than returning a fabricated job object.
+    res.status(501).json({
+      message: "Database import is not implemented. No external database integration exists in this app.",
+    });
   });
 
   const httpServer = createServer(app);

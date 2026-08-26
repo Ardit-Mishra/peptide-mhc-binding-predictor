@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Plus, Share, Settings, Calendar, Folder, UserPlus } from "lucide-react";
+import { Plus, Share, Calendar, Folder } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Project, InsertProject } from "@shared/schema";
 
@@ -71,48 +71,7 @@ export default function Projects() {
     });
   };
 
-  // Mock data for demonstration
-  const mockProjects = [
-    {
-      id: "1",
-      name: "Cancer Immunotherapy Research",
-      description: "Analysis of tumor-associated peptides for HLA-A*02:01 binding prediction",
-      userId: "user-1",
-      isPublic: false,
-      createdAt: new Date("2024-01-15"),
-      updatedAt: new Date("2024-01-20"),
-      collaborators: ["Dr. Smith", "Dr. Johnson"],
-      batchCount: 5,
-      predictionsCount: 247,
-      status: "Active"
-    },
-    {
-      id: "2", 
-      name: "Viral Epitope Mapping",
-      description: "Systematic analysis of SARS-CoV-2 peptide epitopes across multiple MHC alleles",
-      userId: "user-1",
-      isPublic: true,
-      createdAt: new Date("2024-01-10"),
-      updatedAt: new Date("2024-01-18"),
-      collaborators: ["Dr. Chen", "Dr. Williams", "Dr. Brown"],
-      batchCount: 12,
-      predictionsCount: 1203,
-      status: "Active"
-    },
-    {
-      id: "3",
-      name: "Autoimmune Peptide Study",
-      description: "Investigation of self-peptides implicated in autoimmune diseases",
-      userId: "user-2",
-      isPublic: false,
-      createdAt: new Date("2024-01-05"),
-      updatedAt: new Date("2024-01-12"),
-      collaborators: ["Dr. Davis"],
-      batchCount: 3,
-      predictionsCount: 89,
-      status: "Completed"
-    }
-  ];
+  const projectList: Project[] = Array.isArray(projects) ? (projects as Project[]) : [];
 
   return (
     <div className="space-y-6">
@@ -177,113 +136,66 @@ export default function Projects() {
       </div>
 
       {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockProjects.map((project) => (
-          <Card key={project.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-2">
-                  <Folder className="w-5 h-5 text-primary" />
-                  <CardTitle className="text-lg">{project.name}</CardTitle>
-                </div>
-                <div className="flex items-center space-x-2">
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Loading projects…</p>
+      ) : projectList.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            <Folder className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="font-medium text-foreground">No projects yet</p>
+            <p className="text-sm">Create a project above to get started. This is real data — there is no demo/sample project data here.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projectList.map((project) => (
+            <Card key={project.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center space-x-2">
+                    <Folder className="w-5 h-5 text-primary" />
+                    <CardTitle className="text-lg">{project.name}</CardTitle>
+                  </div>
                   {project.isPublic && (
                     <Badge variant="outline" className="text-xs">
                       <Share className="w-3 h-3 mr-1" />
                       Public
                     </Badge>
                   )}
-                  <Badge 
-                    className={
-                      project.status === "Active" 
-                        ? "bg-green-100 text-green-800" 
-                        : "bg-gray-100 text-gray-800"
-                    }
-                  >
-                    {project.status}
-                  </Badge>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground line-clamp-3">
-                {project.description}
-              </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground line-clamp-3">
+                  {project.description}
+                </p>
 
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <div className="font-medium">{project.batchCount}</div>
-                  <div className="text-muted-foreground">Batch Jobs</div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="flex items-center space-x-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>Updated {new Date(project.updatedAt as unknown as string).toLocaleDateString()}</span>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-medium">{project.predictionsCount}</div>
-                  <div className="text-muted-foreground">Predictions</div>
-                </div>
-              </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Collaborators</span>
-                  <Button size="sm" variant="ghost">
-                    <UserPlus className="w-4 h-4" />
+                <div className="flex space-x-2">
+                  <Button size="sm" className="flex-1" data-testid={`button-open-project-${project.id}`}>
+                    Open Project
+                  </Button>
+                  <Button size="sm" variant="outline" data-testid={`button-share-project-${project.id}`}>
+                    <Share className="w-4 h-4" />
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-1">
-                  {project.collaborators.map((collaborator, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {collaborator}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex items-center space-x-1">
-                  <Calendar className="w-3 h-3" />
-                  <span>Updated {project.updatedAt.toLocaleDateString()}</span>
-                </div>
-                <Button size="sm" variant="ghost">
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className="flex space-x-2">
-                <Button size="sm" className="flex-1" data-testid={`button-open-project-${project.id}`}>
-                  Open Project
-                </Button>
-                <Button size="sm" variant="outline" data-testid={`button-share-project-${project.id}`}>
-                  <Share className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Project Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {/* Project Statistics — derived from the real project list above, not sample data */}
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
         <Card>
           <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-primary">3</div>
-            <div className="text-sm text-muted-foreground">Active Projects</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">20</div>
-            <div className="text-sm text-muted-foreground">Total Batches</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">1,539</div>
-            <div className="text-sm text-muted-foreground">Total Predictions</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-purple-600">7</div>
-            <div className="text-sm text-muted-foreground">Collaborators</div>
+            <div className="text-2xl font-bold text-primary">{projectList.length}</div>
+            <div className="text-sm text-muted-foreground">Total Projects</div>
           </CardContent>
         </Card>
       </div>

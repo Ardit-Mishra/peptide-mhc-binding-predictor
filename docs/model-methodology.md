@@ -1,6 +1,19 @@
 # Model Methodology
 
-This document describes the machine learning models used in the Peptide-MHC Binding Predictor, including their architectures, training procedures, and evaluation metrics.
+**Current state, read this first:** The running application does not use a trained model.
+Predictions come from a placeholder function (`server/models/*.ts`) that returns randomized
+values shaped to look like plausible output, not from a trained CNN, BiLSTM, or Transformer —
+no such trained models exist for this application. Predictions in the UI should be treated as
+illustrative/demonstration output only.
+
+A real model is being developed and evaluated offline, in a separate project
+(`ml-training/peptide-mhc`), and is not yet wired into this app. Its held-out evaluation numbers
+are reported below in "Real Model (In Progress)" and must never be presented as what this running
+application currently outputs.
+
+Everything below this point describes either (a) the current demonstration logic actually
+present in the code, or (b) that separate, offline, in-progress model — never a shipped trained
+model powering this app.
 
 ## Problem Statement
 
@@ -8,186 +21,62 @@ Given a peptide sequence of 8--15 amino acid residues, predict the probability t
 
 ## Input Representation
 
-All models share a common preprocessing pipeline:
+This preprocessing step is real and does run in the current code (`server/models/*.ts`,
+`preprocess()`), even though the prediction step downstream of it is a placeholder:
 
 1. **Sequence normalization**: Input sequences are validated to contain only the 20 standard amino acids (ACDEFGHIKLMNPQRSTVWY).
 2. **Fixed-length encoding**: Sequences are padded (with zero vectors) or truncated to a maximum length of 15 residues.
 3. **One-hot encoding**: Each amino acid is represented as a 20-dimensional binary vector, where the index corresponding to the amino acid is set to 1.
-4. **Tensor shape**: The final input tensor has shape `(15, 20)` -- 15 positions by 20 amino acid channels.
+4. **Tensor shape**: The resulting tensor has shape `(15, 20)` -- 15 positions by 20 amino acid channels.
 
-This encoding preserves positional information and treats each residue independently, without learned embeddings.
+Note that this one-hot tensor is currently computed and then discarded — the placeholder
+prediction step (below) does not consume it.
 
-## Model Architectures
+## Current State: Demonstration Prediction Logic
 
-### 1. CNN (Convolutional Neural Network)
+There is no trained model behind the running application. `server/models/cnn.ts`,
+`bilstm.ts`, and `transformer.ts` each expose a `predictBinding()` method whose implementation
+is a randomized placeholder (`Math.random()`-based) wrapped in an artificial `setTimeout` delay
+to simulate compute time. Each file also hardcodes a `getMetrics()` return value (e.g. accuracy,
+AUC, sensitivity, specificity) — these numbers are not derived from any evaluation run; they are
+fixed literals invented to populate the UI's model-comparison views.
 
-**Architecture:**
-```
-Input: (1, 15, 20)
-  -> Conv2d(1, 32, kernel_size=3, padding=1) -> ReLU -> BatchNorm2d -> MaxPool2d
-  -> Conv2d(32, 64, kernel_size=3, padding=1) -> ReLU -> BatchNorm2d -> MaxPool2d
-  -> Flatten
-  -> Linear(64 * 3 * 5, 64) -> ReLU -> Dropout(0.3)
-  -> Linear(64, 1) -> Sigmoid
-Output: binding probability
-```
+The five "architectures" surfaced in the UI (CNN, BiLSTM, CNN+BiLSTM, CNN+BiLSTM Best,
+Transformer) are labels on this same placeholder logic, not five distinct trained models. No
+PyTorch model, weight file, or training run backs any of them, and the `.pt` files in `models/`
+are not loaded by the server (see `docs/architecture.md`, "Model Loading").
 
-**Rationale:** Convolutional layers capture local sequence motifs that are characteristic of MHC binding. The two-layer design balances representational capacity with training efficiency. BatchNorm stabilizes training, and MaxPool reduces spatial dimensions progressively.
+**In short: any probability, confidence, or accuracy value the app currently displays is
+illustrative demonstration output, not a model prediction.**
 
-**Hyperparameters:**
-| Parameter | Value |
-|-----------|-------|
-| Epochs | 50 |
-| Batch size | 128 |
-| Learning rate | 0.001 |
-| Optimizer | Adam |
-| Dropout | 0.3 |
+## Real Model (In Progress)
 
-### 2. BiLSTM (Bidirectional LSTM)
+A real, trained model is being developed and evaluated offline in a separate project
+(`ml-training/peptide-mhc`) and is **not yet integrated into this application**. It is not the
+architecture UI currently exposes (no CNN/BiLSTM/Transformer), and its numbers below describe
+held-out offline evaluation only — never this app's live output.
 
-**Architecture:**
-```
-Input: (1, 15, 20)
-  -> Conv2d(1, 32, kernel_size=3, padding=1) -> ReLU -> BatchNorm2d -> MaxPool2d
-  -> Channel averaging (reduce to sequence representation)
-  -> BiLSTM(input_size=10, hidden_size=64, bidirectional=True)
-  -> Global average pooling
-  -> Linear(128, 64) -> ReLU -> Dropout(0.3)
-  -> Linear(64, 1) -> Sigmoid
-Output: binding probability
-```
+| Model | Data / Split | Held-out ROC-AUC | Held-out PR-AUC |
+|-------|--------------|-------------------|-------------------|
+| XGBoost baseline (allele pseudo-sequence conditioning) | MHCflurry curated data, leak-free peptide-grouped split | 0.919 | -- |
+| ESM-2 150M + LoRA | MHCflurry curated data, leak-free peptide-grouped split | 0.922 | 0.827 |
 
-**Rationale:** The hybrid CNN-BiLSTM architecture first extracts local features via convolution, then models sequential dependencies in both directions using the bidirectional LSTM. This captures long-range interactions between residues that pure CNNs may miss.
-
-**Hyperparameters:**
-| Parameter | Value |
-|-----------|-------|
-| Epochs | 40 |
-| Batch size | 128 |
-| Learning rate | 0.001 |
-| Optimizer | Adam |
-| LSTM hidden size | 64 |
-| Dropout | 0.3 |
-
-### 3. CNN+BiLSTM (Hybrid)
-
-A variant of the BiLSTM model with deeper convolutional feature extraction before the recurrent layers. Two configurations were trained:
-
-- **Standard**: Default hyperparameters
-- **Optimized (Best)**: Hyperparameter search over learning rate, hidden size, and dropout rate, selecting the configuration with the highest validation AUC
-
-### 4. Transformer
-
-**Architecture:**
-```
-Input: (15, 20)
-  -> PositionalEncoding(d_model=20, max_len=15)
-  -> TransformerEncoder(
-       d_model=20,
-       nhead=2,
-       num_layers=2,
-       dim_feedforward=64
-     )
-  -> Global average pooling
-  -> Linear(20, 32) -> ReLU -> Dropout(0.1)
-  -> Linear(32, 1) -> Sigmoid
-Output: binding probability
-```
-
-**Rationale:** The self-attention mechanism allows the model to learn pairwise interactions between all positions in the sequence simultaneously, without the sequential processing constraint of LSTMs. Positional encoding preserves residue ordering information. The compact architecture (2 layers, 2 heads) is appropriate for the relatively short input sequences.
-
-**Hyperparameters:**
-| Parameter | Value |
-|-----------|-------|
-| Epochs | 35 |
-| Batch size | 128 |
-| Learning rate | 0.0001 |
-| Optimizer | Adam |
-| Attention heads | 2 |
-| Encoder layers | 2 |
-| Feedforward dim | 64 |
-| Dropout | 0.1 |
-
-## Training Procedure
-
-### Data
-Training data consists of peptide-MHC binding measurements. Positive examples are peptides experimentally confirmed to bind MHC molecules; negative examples are non-binders or low-affinity binders.
-
-### Loss Function
-Binary cross-entropy loss is used for all models:
-
-```
-L = -(y * log(p) + (1 - y) * log(1 - p))
-```
-
-where `y` is the true label (0 or 1) and `p` is the predicted probability.
-
-### Optimization
-All models use the Adam optimizer with model-specific learning rates (see hyperparameter tables above). Learning rate scheduling was not applied in the current training runs.
-
-### Regularization
-- **Dropout**: Applied before the final classification layer (0.1--0.3 depending on model)
-- **Batch normalization**: Used in CNN layers to stabilize training
-- **Early stopping**: Training was monitored on validation loss
-
-## Evaluation
-
-### Metrics
-
-| Metric | Definition |
-|--------|-----------|
-| Accuracy | (TP + TN) / (TP + TN + FP + FN) |
-| AUC-ROC | Area under the receiver operating characteristic curve |
-| Sensitivity (Recall) | TP / (TP + FN) -- proportion of true binders correctly identified |
-| Specificity | TN / (TN + FP) -- proportion of true non-binders correctly identified |
-
-### Results Summary
-
-| Model | Accuracy | AUC-ROC | Sensitivity | Specificity |
-|-------|----------|---------|-------------|-------------|
-| CNN | 92.4% | 0.914 | 89.2% | 91.7% |
-| BiLSTM | 89.7% | 0.892 | 87.5% | 89.3% |
-| CNN+BiLSTM | 93.2% | 0.925 | 91.4% | 94.3% |
-| CNN+BiLSTM Best | 94.2% | 0.941 | 92.8% | 93.5% |
-| Transformer | 94.1% | 0.935 | 92.1% | 93.8% |
-
-### Observations
-
-- The **CNN+BiLSTM Best** model achieves the highest AUC-ROC (0.941), benefiting from hyperparameter optimization.
-- The **Transformer** model achieves comparable accuracy (94.1%) with a simpler architecture and lower dropout requirement.
-- The **CNN** model offers the best speed-accuracy tradeoff for high-throughput screening scenarios.
-- The **BiLSTM** model has lower overall accuracy but captures sequential dependencies that may be important for certain allele-specific predictions.
-
-## Model Selection Guidance
-
-| Use Case | Recommended Model | Reason |
-|----------|------------------|--------|
-| High-throughput screening | CNN | Fastest inference, good accuracy |
-| Sequence-dependent analysis | BiLSTM | Captures positional dependencies |
-| General-purpose prediction | CNN+BiLSTM Best | Highest AUC-ROC |
-| Research exploration | Transformer | Strong accuracy, interpretable attention |
-| Ensemble prediction | All models | Cross-model agreement increases confidence |
+"Peptide-grouped split" means no peptide sequence appears in both the training and test sets,
+which avoids the inflated scores that come from sequence leakage across the split. Integrating
+this model into the running application (replacing the placeholder logic above) is separate,
+in-progress work and is not part of this document's demonstration description.
 
 ## Limitations
 
-- Models are trained on experimentally determined binding data, which has inherent biases toward well-studied alleles (particularly HLA-A*02:01).
-- Predictions are for peptide-MHC class I binding only; class II binding requires different models.
-- The current implementation uses simulated inference on the web server. For production-grade predictions with actual PyTorch inference, a Python-based inference backend or ONNX runtime integration would be required.
-- Model performance metrics reflect the specific training/test split used; performance on novel alleles or peptide families may differ.
-
-## Training Notebooks
-
-The training pipelines are structured as Jupyter notebooks:
-
-| Notebook | Content |
-|----------|---------|
-| `01_data_ingestion.ipynb` | Data loading, cleaning, and preprocessing |
-| `04_model_training_cnn.ipynb` | CNN model training and evaluation |
-| `04_model_training_bilstm.ipynb` | BiLSTM model training and evaluation |
-| `04_model_training_cnn_bilstm.ipynb` | CNN+BiLSTM hybrid training |
-| `04_model_training_transformer_custom.ipynb` | Transformer model training |
-
-To include these in the repository, add them to a `notebooks/` directory.
+- The application currently in production uses simulated (random) inference, not a trained
+  model. See "Current State" above.
+- The real, offline-evaluated model described above has its own limitations: training data
+  has inherent biases toward well-studied alleles (particularly HLA-A*02:01); it addresses
+  peptide-MHC class I binding only, not class II; and held-out performance may not generalize
+  to novel alleles or peptide families outside the training distribution.
+- For production-grade predictions from the real model, a Python-based inference backend or
+  ONNX runtime integration would be required to serve it from this application — that
+  integration work is out of scope for this document.
 
 ## References
 
