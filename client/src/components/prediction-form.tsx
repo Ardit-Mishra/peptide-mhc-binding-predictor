@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
-import { predictRequestSchema, type PredictRequest, type PredictResponse } from "@shared/schema";
+import { MODEL_KEYS, predictRequestSchema, type PredictRequest, type PredictResponse } from "@shared/schema";
+import { loadAlleleList } from "@/lib/pmhc-model";
 import { Microscope, Info, Play } from "lucide-react";
 
 interface PredictionFormProps {
@@ -32,16 +33,29 @@ export default function PredictionForm({
   const form = useForm<PredictRequest>({
     resolver: zodResolver(predictRequestSchema),
     defaultValues: {
-      sequence: "SIINFEKL",
-      model: selectedModel as "cnn" | "bilstm" | "cnn_bilstm" | "cnn_bilstm_best" | "transformer",
-      mhcAllele: "",
+      sequence: "GILGFVFTL",
+      model: MODEL_KEYS[0],
+      mhcAllele: "HLA-A*02:01",
     },
   });
 
-  // Update form when selected model changes
+  // Only one trained model exists, so the form always submits that key. The
+  // `selectedModel` prop is kept for the parent's display state.
   React.useEffect(() => {
-    form.setValue("model", selectedModel as "cnn" | "bilstm" | "cnn_bilstm" | "cnn_bilstm_best" | "transformer");
+    form.setValue("model", MODEL_KEYS[0]);
   }, [selectedModel, form]);
+
+  // The allele list is a ~12 KB asset, fetched separately from the model so the
+  // picker fills in immediately without downloading the tree ensemble.
+  const [alleles, setAlleles] = useState<{ allele: string; support?: { n: number } }[]>([]);
+  const [alleleError, setAlleleError] = useState(false);
+  React.useEffect(() => {
+    let active = true;
+    loadAlleleList()
+      .then((list) => { if (active) setAlleles(list); })
+      .catch(() => { if (active) setAlleleError(true); });
+    return () => { active = false; };
+  }, []);
 
   const predictMutation = useMutation({
     mutationFn: api.predict,
@@ -100,7 +114,7 @@ export default function PredictionForm({
                       <Input
                         {...field}
                         className="font-mono text-sm pr-10"
-                        placeholder="Enter peptide sequence (e.g., SIINFEKL)"
+                        placeholder="8-11 residues, e.g. GILGFVFTL"
                         onKeyPress={handleKeyPress}
                         data-testid="input-sequence"
                       />
@@ -124,20 +138,30 @@ export default function PredictionForm({
               name="mhcAllele"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>MHC Allele (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormLabel>
+                    MHC Allele
+                    {alleles.length > 0 && (
+                      <span className="ml-2 text-xs font-normal text-muted-foreground">
+                        {alleles.length} trained alleles
+                      </span>
+                    )}
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger data-testid="select-mhc-allele">
-                        <SelectValue placeholder="None selected (defaults to HLA-A*02:01)" />
+                        <SelectValue placeholder={alleleError ? "Allele list unavailable" : "Loading alleles..."} />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      {/* HONESTY NOTE: no allele auto-detection exists in this app -- omitting a
-                          selection here just falls back to a fixed default (see server/routes.ts). */}
-                      <SelectItem value="HLA-A*02:01">HLA-A*02:01</SelectItem>
-                      <SelectItem value="HLA-A*01:01">HLA-A*01:01</SelectItem>
-                      <SelectItem value="HLA-B*07:02">HLA-B*07:02</SelectItem>
-                      <SelectItem value="HLA-C*07:01">HLA-C*07:01</SelectItem>
+                    <SelectContent className="max-h-72">
+                      {/* Only alleles the model was actually trained on are listed, so the
+                          picker cannot offer one the model has never seen. The count next to
+                          each is how many training measurements back that allele. */}
+                      {alleles.map(({ allele, support }) => (
+                        <SelectItem key={allele} value={allele}>
+                          {allele}
+                          {support ? ` (n=${support.n.toLocaleString()})` : ""}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

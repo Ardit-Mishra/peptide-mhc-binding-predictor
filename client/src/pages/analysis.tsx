@@ -93,7 +93,7 @@ export default function AnalysisTools() {
   const [mutationSequence, setMutationSequence] = useState("AAGIGILTV");
   const [mutationPosition, setMutationPosition] = useState(0);
   const [newAminoAcid, setNewAminoAcid] = useState("A");
-  const [mutationModel, setMutationModel] = useState("cnn");
+  const [mutationModel, setMutationModel] = useState("xgb_pseudoseq");
   
   // Sequence Alignment State
   const [sequence1, setSequence1] = useState("");
@@ -249,11 +249,12 @@ export default function AnalysisTools() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="cnn">Demonstration model</SelectItem>
+                      <SelectItem value="xgb_pseudoseq">XGBoost + allele pseudo-sequence</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground mt-1">
-                    This build offers one illustrative demonstration model, not a set of trained architectures.
+                    One trained model is available; the five architecture slots this app used to
+                    list were placeholders and have been removed.
                   </p>
                 </div>
 
@@ -301,7 +302,7 @@ export default function AnalysisTools() {
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Demonstration score from the request above — simulated, not a trained-model output.
+                      Scored by the trained model from the request above.
                     </p>
                   </div>
                 )}
