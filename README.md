@@ -1,3 +1,5 @@
+![Peptide-MHC Binding Predictor](assets/banner.png)
+
 # Peptide-MHC Class I Binding Predictor
 
 Predicts whether a short peptide will bind a given human MHC class I (HLA)
