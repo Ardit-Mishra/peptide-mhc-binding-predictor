@@ -7,24 +7,30 @@ import Navigation from "@/components/navigation";
 import Home from "@/pages/home";
 import BatchProcessing from "@/pages/batch";
 import Visualization from "@/pages/visualize";
-import AnalysisTools from "@/pages/analysis";
-import PeptideDesigner from "@/pages/design";
-import Projects from "@/pages/projects";
-import Literature from "@/pages/literature";
-import Databases from "@/pages/databases";
-import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
+/**
+ * The disclaimer has to stay visible, but it was a full-bleed amber bar that
+ * shouted louder than the tool itself and owned the first thing you saw. It is
+ * now a quiet hairline strip: a small ochre mark carries the "this is qualified"
+ * signal (the same meaning ochre has everywhere else here), and the text sits in
+ * muted ink at label scale.
+ */
 function ModelBanner() {
   return (
     <div
-      role="alert"
-      className="w-full bg-amber-500/15 border-b border-amber-500/40 text-amber-200 text-xs sm:text-sm px-4 py-2 text-center"
+      role="note"
+      className="flex w-full items-center gap-2.5 border-b border-border bg-[var(--ds-surface-sunk)] px-4 py-1.5 text-[11px] leading-tight text-muted-foreground"
     >
-      <span className="font-medium">Research demo.</span>{" "}
-      Binding predictions come from a gradient-boosted tree model trained on public
-      MHCflurry-curated data (held-out ROC-AUC 0.919), running entirely in your browser.{" "}
-      <span className="font-medium">Not a clinical or diagnostic tool.</span>
+      <span
+        aria-hidden="true"
+        className="h-3 w-0.5 flex-none rounded-full"
+        style={{ background: "var(--ds-caveat)" }}
+      />
+      <p>
+        <span className="text-foreground">Research demo — not a clinical or diagnostic tool.</span>{" "}
+        Gradient-boosted tree model on public MHCflurry data, held-out ROC-AUC 0.919, run in your browser.
+      </p>
     </div>
   );
 }
@@ -42,12 +48,6 @@ function Router() {
               <Route path="/predict" component={Home} />
               <Route path="/batch" component={BatchProcessing} />
               <Route path="/visualize" component={Visualization} />
-              <Route path="/analysis" component={AnalysisTools} />
-              <Route path="/design" component={PeptideDesigner} />
-              <Route path="/projects" component={Projects} />
-              <Route path="/literature" component={Literature} />
-              <Route path="/databases" component={Databases} />
-              <Route path="/settings" component={SettingsPage} />
               <Route component={NotFound} />
             </Switch>
           </div>

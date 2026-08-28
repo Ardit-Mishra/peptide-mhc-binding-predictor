@@ -1,77 +1,106 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/*
+ * PeptideMHC — "Laboratory Instrument"
+ *
+ * Design thesis: this app is a measurement device, so it should read like one.
+ * The reference is a spectrophotometer readout or a NetMHCpan results panel,
+ * not a SaaS dashboard. The measured probability is the hero; everything else
+ * is chrome around a number.
+ *
+ * Deliberately single-theme (dark instrument panel) rather than a light/dark
+ * pair — an instrument face is a committed object, not a themeable surface.
+ * Every colour is therefore declared explicitly; nothing is inherited.
+ *
+ * Removed from the previous build, all generic-template tells:
+ *   Inter                     -> Bricolage Grotesque (has an actual voice)
+ *   blue->green gradients     -> one flat accent, used sparingly
+ *   backdrop-filter glass     -> opaque surfaces (also a real paint cost)
+ *   translateY hover lifts    -> border/colour state changes
+ *   infinite pulsing dots     -> static state marks
+ *   gradient progress bars    -> flat fill against a hairline track
+ */
+@import "./tokens.css";
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: hsl(222, 47%, 8%);
-  --foreground: hsl(210, 40%, 95%);
-  --card: hsl(222, 35%, 12%);
-  --card-foreground: hsl(210, 40%, 92%);
-  --popover: hsl(222, 35%, 10%);
-  --popover-foreground: hsl(210, 40%, 95%);
-  --primary: hsl(214, 78%, 55%);
-  --primary-foreground: hsl(222, 47%, 8%);
-  --secondary: hsl(215, 25%, 25%);
-  --secondary-foreground: hsl(210, 40%, 95%);
-  --muted: hsl(222, 25%, 15%);
-  --muted-foreground: hsl(215, 20%, 65%);
-  --accent: hsl(158, 76%, 45%);
-  --accent-foreground: hsl(222, 47%, 8%);
-  --destructive: hsl(0, 84%, 60%);
-  --destructive-foreground: hsl(210, 40%, 98%);
-  --border: hsl(215, 25%, 20%);
-  --input: hsl(215, 25%, 18%);
-  --ring: hsl(214, 78%, 55%);
-  --chart-1: hsl(214, 78%, 35%);
-  --chart-2: hsl(158, 76%, 39%);
-  --chart-3: hsl(42, 82%, 56%);
-  --chart-4: hsl(147, 79%, 42%);
-  --chart-5: hsl(341, 75%, 51%);
-  --sidebar: hsl(0, 0%, 100%);
-  --sidebar-foreground: hsl(222, 84%, 4.9%);
-  --sidebar-primary: hsl(214, 78%, 35%);
-  --sidebar-primary-foreground: hsl(210, 40%, 98%);
-  --sidebar-accent: hsl(158, 76%, 39%);
-  --sidebar-accent-foreground: hsl(210, 40%, 98%);
-  --sidebar-border: hsl(214, 32%, 91%);
-  --sidebar-ring: hsl(214, 78%, 35%);
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
-  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
-  --radius: 0.75rem;
-  --shadow-2xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
-  --shadow-xs: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.06);
-  --shadow-sm: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.06);
-  --shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 0px 1px 2px 0px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0px 10px 15px -3px rgba(0, 0, 0, 0.1), 0px 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0px 25px 50px -12px rgba(0, 0, 0, 0.25);
+  /* Ground: cool slate, not pure black. Pure black + one acid accent is the
+     current house style of generated UIs; a slight blue bias reads as chosen. */
+  --background: var(--ds-ground);
+  --foreground: var(--ds-ink);
+  --card: var(--ds-surface);
+  --card-foreground: var(--ds-ink);
+  --popover: var(--ds-surface);
+  --popover-foreground: var(--ds-ink);
+
+  /* Accent: AlphaFold's high-confidence pLDDT blue, lifted for a dark ground.
+     Borrowed from this domain's own instruments rather than a brand palette. */
+  --primary: var(--ds-accent);
+  --primary-foreground: var(--ds-on-accent);
+
+  --secondary: hsl(215, 20%, 20%);
+  --secondary-foreground: var(--ds-ink);
+  --muted: var(--ds-surface-sunk);
+  --muted-foreground: var(--ds-ink-muted);
+
+  /* Ochre is reserved for ONE meaning: a stated limitation. It never decorates.
+     Seeing it anywhere on screen means the app is qualifying a claim. */
+  --accent: var(--ds-caveat);
+  --accent-foreground: hsl(215, 28%, 9%);
+  --caveat: var(--ds-caveat);
+  --caveat-surface: var(--ds-caveat-surface);
+
+  --destructive: var(--ds-critical);
+  --destructive-foreground: hsl(210, 22%, 96%);
+
+  --border: var(--ds-border);
+  --input: hsl(215, 20%, 17%);
+  --ring: var(--ds-accent);
+
+  /* Sequential, single-hue: a categorical rainbow would imply the categories
+     are unordered, and these are all magnitudes of the same measurement. */
+  --chart-1: hsl(219, 100%, 71%);
+  --chart-2: hsl(219, 72%, 58%);
+  --chart-3: hsl(219, 48%, 46%);
+  --chart-4: hsl(215, 26%, 36%);
+  --chart-5: hsl(38, 62%, 58%);
+
+  --sidebar: hsl(215, 27%, 11%);
+  --sidebar-foreground: hsl(210, 22%, 93%);
+  --sidebar-primary: hsl(219, 100%, 71%);
+  --sidebar-primary-foreground: hsl(215, 28%, 9%);
+  --sidebar-accent: hsl(215, 22%, 16%);
+  --sidebar-accent-foreground: hsl(210, 22%, 93%);
+  --sidebar-border: hsl(215, 18%, 21%);
+  --sidebar-ring: hsl(219, 100%, 71%);
+
+  --font-sans: var(--ds-font-ui);
+  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  --font-mono: var(--ds-font-mono);
+
+  /* Tight radius: instrument panels have machined corners, not pill shapes. */
+  --radius: var(--ds-radius-md);
+
+  /* Shadows carry no narrative here — elevation is expressed with hairlines.
+     Kept minimal so shadcn primitives that reference them still resolve. */
+  --shadow-2xs: 0 1px 1px rgba(0, 0, 0, .30);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, .35);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .35);
+  --shadow: 0 1px 2px rgba(0, 0, 0, .40);
+  --shadow-md: 0 2px 6px rgba(0, 0, 0, .45);
+  --shadow-lg: 0 6px 18px rgba(0, 0, 0, .50);
+  --shadow-xl: 0 10px 28px rgba(0, 0, 0, .55);
+  --shadow-2xl: 0 18px 44px rgba(0, 0, 0, .60);
+
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 }
 
+/* The panel is the design. `.dark` mirrors `:root` so any consumer toggling it
+   sees the same instrument rather than a half-defined second theme. */
 .dark {
-  --background: hsl(0, 0%, 0%);
-  --foreground: hsl(200, 6.7%, 91.2%);
-  --card: hsl(228, 9.8%, 10%);
-  --card-foreground: hsl(0, 0%, 85.1%);
-  --popover: hsl(0, 0%, 0%);
-  --popover-foreground: hsl(200, 6.7%, 91.2%);
-  --primary: hsl(214, 78%, 45%);
-  --primary-foreground: hsl(210, 40%, 98%);
-  --secondary: hsl(215, 14%, 49%);
-  --secondary-foreground: hsl(222, 84%, 4.9%);
-  --muted: hsl(0, 0%, 9.4%);
-  --muted-foreground: hsl(210, 3.4%, 46.3%);
-  --accent: hsl(158, 76%, 49%);
-  --accent-foreground: hsl(210, 40%, 98%);
-  --destructive: hsl(0, 84%, 60%);
-  --destructive-foreground: hsl(210, 40%, 98%);
-  --border: hsl(210, 5.3%, 14.9%);
-  --input: hsl(207, 27.7%, 18.4%);
-  --ring: hsl(214, 78%, 45%);
+  color-scheme: dark;
 }
 
 @layer base {
@@ -80,85 +109,172 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-sans);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  /* Digits that sit in columns must not shimmy as they update. */
+  th, td, output, .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    background: hsl(219, 100%, 71%, .25);
+    color: var(--foreground);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
 }
 
-/* Custom styles for the application */
-.gradient-bg {
-  background: linear-gradient(135deg, hsl(214, 78%, 35%) 0%, hsl(158, 76%, 39%) 100%);
-}
+@layer components {
+  /* ---------------------------------------------------------------- readout
+     The differentiation anchor. A measured value is set large, in tabular
+     mono, above a hairline tick scale — the way a physical instrument prints
+     one. Screenshot the app with the logo removed and this is what identifies
+     it. Used for the binding probability. */
+  .readout-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1;
+    color: var(--primary);
+  }
 
-.status-indicator {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
+  .tick-scale {
+    height: 6px;
+    background-image: repeating-linear-gradient(
+      90deg,
+      var(--border) 0 1px,
+      transparent 1px 7px
+    );
+  }
 
-.status-online {
-  background: hsl(142, 76%, 36%);
-  animation: pulse 2s infinite;
-}
+  /* Uppercase mono labels are the instrument's voice: they mark what a number
+     IS, so they stay quiet and never compete with the number itself. */
+  .instrument-label {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
 
-.status-offline {
-  background: hsl(0, 84%, 60%);
-}
+  /* Peptides are read residue by residue, so they get tracking and never wrap
+     mid-sequence. */
+  .seq {
+    font-family: var(--font-mono);
+    letter-spacing: 0.09em;
+    white-space: nowrap;
+  }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
+  /* ----------------------------------------------------------------- caveat
+     The one place ochre appears. A stated limitation is marked, never styled
+     as an error — being explicit about what the model cannot do is a feature
+     of this app, not a fault condition. */
+  .caveat {
+    border-left: 2px solid var(--caveat);
+    background: var(--caveat-surface);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.75rem 1rem;
+  }
 
-.loading-spinner {
-  border: 3px solid hsl(214, 32%, 91%);
-  border-top: 3px solid hsl(214, 78%, 35%);
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  animation: spin 1s linear infinite;
+  /* ---------------------------------------------------------------- surface
+     Was `.prediction-card`: a blue->green gradient behind backdrop-blur.
+     Now an opaque panel separated by a hairline — cheaper to paint and it
+     stops the content sitting on a colour wash. */
+  .prediction-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+  }
+
+  /* Was `.card-shadow` with a hover lift. Cards do not levitate on a bench. */
+  .card-shadow {
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* Was `.gradient-bg`. Flat accent tile, hairline edge. */
+  .gradient-bg {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  /* Was a gradient fill. A meter reads against a track; the fill is one flat
+     colour so its LENGTH carries the value, not its hue.
+     The bar is driven by `transform: scaleX(...)` from a full-width element
+     rather than an animated `width`, so the meter moves on the compositor and
+     never triggers layout. Callers pass `--fill` as a 0-1 fraction. */
+  .progress-bar {
+    background: var(--primary);
+    border-radius: 999px;
+    width: 100%;
+    transform-origin: left center;
+    transform: scaleX(var(--fill, 0));
+    transition: transform .4s cubic-bezier(.22, .7, .3, 1);
+  }
+
+  /* Was a lift + glow on hover. State is shown by the border, which is how a
+     selected control reads on a physical panel. */
+  .model-tab {
+    border: 1px solid var(--border);
+    transition: border-color .15s ease, background-color .15s ease;
+  }
+  .model-tab:hover {
+    border-color: var(--primary);
+  }
+  .model-tab.active {
+    border-color: var(--primary);
+    background: hsl(219, 100%, 71%, .10);
+    color: var(--foreground);
+  }
+
+  /* `.status-online` / `.status-offline` were removed rather than restyled:
+     nothing renders them, and the app has no live status to report. */
+
+  .loading-spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to { transform: rotate(360deg); }
 }
 
-.progress-bar {
-  background: linear-gradient(90deg, hsl(158, 76%, 39%) 0%, hsl(214, 78%, 35%) 100%);
-  height: 8px;
-  border-radius: 4px;
-  transition: width 0.5s ease-in-out;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+/* One entrance, used on the result panel: the value settles into place rather
+   than appearing. Nothing else in the app animates on load. */
+@keyframes readout-settle {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
 }
 
-.prediction-card {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  backdrop-filter: blur(10px);
+.readout-enter {
+  animation: readout-settle .45s cubic-bezier(.22, .7, .3, 1) both;
 }
 
-.model-tab {
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
-}
-
-.model-tab:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.model-tab.active {
-  background: var(--primary);
-  color: var(--primary-foreground);
-  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);
-}
-
-.card-shadow {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s ease;
-}
-
-.card-shadow:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
 }

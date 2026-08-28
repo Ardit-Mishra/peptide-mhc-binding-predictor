@@ -69,8 +69,9 @@ export default function Visualization() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              {/* No "Confidence" option: the model emits a probability and no
+                  uncertainty estimate, so there is nothing else to plot. */}
               <SelectItem value="probability">Probability</SelectItem>
-              <SelectItem value="confidence">Confidence</SelectItem>
               <SelectItem value="compute_time">Compute Time</SelectItem>
             </SelectContent>
           </Select>

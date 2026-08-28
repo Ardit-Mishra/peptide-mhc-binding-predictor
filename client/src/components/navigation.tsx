@@ -1,48 +1,21 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Dna, Home, Upload, BarChart3, Settings, Users, FlaskConical, BookOpen, Target, Menu, X } from "lucide-react";
+import { Dna, Home, Upload, BarChart3, Target, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-const navigationSections = [
-  {
-    title: "Core",
-    items: [
-      { name: "Dashboard", path: "/", icon: Home },
-      { name: "Single Prediction", path: "/predict", icon: Target },
-    ]
-  },
-  {
-    title: "Batch & Analysis", 
-    subtitle: "Beta",
-    items: [
-      { name: "Batch Processing", path: "/batch", icon: Upload },
-      { name: "Visualization", path: "/visualize", icon: BarChart3 },
-      { name: "Analysis Tools", path: "/analysis", icon: FlaskConical },
-    ]
-  },
-  {
-    title: "Research",
-    subtitle: "Beta",
-    items: [
-      { name: "Peptide Designer", path: "/design", icon: Target },
-      { name: "Literature", path: "/literature", icon: BookOpen },
-      { name: "Projects", path: "/projects", icon: Users },
-    ]
-  },
-  {
-    title: "Databases",
-    items: [
-      { name: "Data Sources", path: "/databases", icon: BookOpen },
-    ]
-  },
-  {
-    title: "Settings",
-    items: [
-      { name: "Configuration", path: "/settings", icon: Settings },
-    ]
-  }
+// Only routes backed by the real in-browser model appear here. Pages that
+// rendered hardcoded "results" (mock motifs, invented mutation impacts,
+// non-functional integrations and settings) were removed rather than shipped
+// behind a "Beta" badge — the app must not advertise capabilities it lacks.
+// "Dashboard" and "Single Prediction" both rendered the same page, and a
+// single-item "Method" section was a heading with one link under it. Three
+// destinations, flat — the app has three things you can do.
+const navigationItems = [
+  { name: "Predict", path: "/", icon: Target },
+  { name: "Batch", path: "/batch", icon: Upload },
+  { name: "Benchmarks", path: "/visualize", icon: BarChart3 },
 ];
 
 export default function Navigation() {
@@ -50,77 +23,58 @@ export default function Navigation() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [location] = useLocation();
 
+
   const NavigationContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo/Header */}
-      <div className="p-4 border-b border-border">
-          <div className="flex items-center space-x-3">
-            <div className="gradient-bg p-2 rounded-lg">
-              <Dna className="text-white text-lg" />
-            </div>
-            <div>
-              <h1 className="font-semibold text-foreground text-sm">
-                Peptide-MHC Predictor
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Research Platform
-              </p>
-            </div>
-          </div>
+      <div className="border-b border-border px-4 py-4">
+        <div className="flex items-center gap-2.5">
+          <Dna className="h-4 w-4 flex-none text-[var(--ds-accent)]" aria-hidden="true" />
+          <span className="seq text-[13px] font-semibold text-foreground">pMHC</span>
         </div>
+      </div>
 
-      {/* Navigation Sections */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="space-y-6">
-            {navigationSections.map((section) => (
-              <div key={section.title}>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {section.title}
-                  </h3>
-                  {section.subtitle && (
-                    <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-md font-medium">
-                      {section.subtitle}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  {section.items.map((item) => {
-                    const isActive = location === item.path;
-                    return (
-                      <Link key={item.name} href={item.path}>
-                        <Button
-                          variant={isActive ? "secondary" : "ghost"}
-                          className={`w-full justify-start text-sm ${
-                            isActive 
-                              ? "bg-primary/10 text-primary border border-primary/20" 
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                          data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
-                          onClick={() => setIsMobileOpen(false)}
-                        >
-                          <item.icon className="w-4 h-4 mr-3" />
-                          {item.name}
-                        </Button>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto p-3">
+        <div className="space-y-0.5">
+          {navigationItems.map((item) => {
+            const isActive = location === item.path;
+            return (
+              <Link key={item.name} href={item.path}>
+                <Button
+                  variant="ghost"
+                  aria-current={isActive ? "page" : undefined}
+                  className={`w-full cursor-pointer justify-start rounded-[var(--ds-radius-sm)] text-sm ${
+                    isActive
+                      ? "bg-[var(--ds-accent-soft)] text-[var(--ds-accent-ink)]"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  data-testid={`nav-${item.name.toLowerCase()}`}
+                  onClick={() => setIsMobileOpen(false)}
+                >
+                  <item.icon className="mr-3 h-4 w-4" />
+                  {item.name}
+                </Button>
+              </Link>
+            );
+          })}
         </div>
+      </nav>
 
       {/* Status Footer */}
       <div className="p-4 border-t border-border">
           <div className="text-xs text-muted-foreground space-y-1">
             <div className="flex items-center justify-between">
-              <span>Models:</span>
-              <span className="text-accent">5 Loaded</span>
+              <span>Model:</span>
+              <span className="text-accent" data-testid="status-model">XGBoost</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Status:</span>
-              <span className="text-green-500">●</span>
+              <span>Alleles:</span>
+              <span data-testid="status-alleles">129</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Runs:</span>
+              <span data-testid="status-runtime">in your browser</span>
             </div>
           </div>
       </div>

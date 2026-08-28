@@ -13,12 +13,8 @@
  */
 import {
   batchUploadSchema,
-  designRequestSchema,
-  insertProjectSchema,
-  mutationRequestSchema,
   predictRequestSchema,
   type BatchJob,
-  type DesignRequest,
   type Prediction,
   type Project,
   type SystemStatus,
@@ -112,14 +108,12 @@ function systemStatus(): SystemStatus {
 /** Default allele when the caller doesn't pick one — the best-supported one. */
 const DEFAULT_ALLELE = "HLA-A*02:01";
 
-/**
- * How far the probability sits from the 0.5 decision boundary, as a percentage.
- * This is a plain restatement of the probability, NOT a calibrated confidence
- * interval or an uncertainty estimate — the model does not produce one.
- */
-function boundaryDistance(probability: number): number {
-  return Math.abs(probability - 0.5) * 2;
-}
+// There is deliberately no `confidence` here. The previous implementation
+// reported |p − 0.5| × 2, which is a restatement of the probability rather than
+// an uncertainty estimate — a p of 0.99 from an allele with 4 training
+// measurements scored the same "99% confidence" as one backed by 14,387. The
+// model has not been calibrated (no Brier/ECE measured), so the honest signals
+// are the probability itself and the per-allele training support beside it.
 
 async function predict(body: unknown) {
   const { sequence, model: modelName, mhcAllele } = predictRequestSchema.parse(body);
@@ -140,13 +134,11 @@ async function predict(body: unknown) {
   const t0 = performance.now();
   const { probability, rank, margin } = predictor.predict(sequence, allele);
   const computeTime = ((performance.now() - t0) / 1000).toFixed(3);
-  const confidence = boundaryDistance(probability);
 
   store.addPrediction({
     sequence,
     model: modelName,
     probability,
-    confidence,
     mhcAllele: allele,
     computeTime: parseFloat(computeTime),
   });
@@ -156,7 +148,6 @@ async function predict(body: unknown) {
     sequence,
     model: MODEL_LABEL,
     probability: parseFloat(probability.toFixed(4)),
-    confidence: parseFloat((confidence * 100).toFixed(1)),
     rank,
     margin: parseFloat(margin.toFixed(4)),
     computeTime: `${computeTime}s`,
@@ -171,7 +162,7 @@ async function predict(body: unknown) {
 }
 
 async function scoreFor(sequence: string, allele: string = DEFAULT_ALLELE) {
-  const { predictor } = await loadModel();
+  const { predictor, support } = await loadModel();
   // Without this guard an unknown allele encodes as an all-zero block and the
   // model returns a confident-looking number for an allele it has never seen.
   if (!predictor.hasAllele(allele)) {
@@ -180,9 +171,10 @@ async function scoreFor(sequence: string, allele: string = DEFAULT_ALLELE) {
   const { probability, margin } = predictor.predict(sequence, allele);
   return {
     sequence,
+    mhcAllele: allele,
+    alleleSupportN: support[allele]?.n ?? null,
     model: MODEL_KEY,
     probability,
-    confidence: boundaryDistance(probability),
     margin,
     rank: probability > 0.8 ? "High Binder" : probability > 0.5 ? "Medium Binder" : "Low Binder",
     computeTime: 0,
@@ -216,8 +208,21 @@ async function runBatch(body: unknown) {
   // Load before creating the job so a model-load failure surfaces as an error
   // rather than a job that silently never completes.
   const { predictor } = await loadModel();
-  if (!predictor.hasAllele(req.mhcAllele)) {
-    return json({ message: `${req.mhcAllele} is not a trained allele` }, 400);
+  // Validate every pairing up front. One unknown allele fails the whole batch
+  // rather than silently substituting a trained one and returning a number.
+  const unknown = Array.from(new Set(req.entries.map((e) => e.allele))).filter(
+    (a) => !predictor.hasAllele(a),
+  );
+  if (unknown.length > 0) {
+    return json(
+      {
+        message:
+          `Not trained on ${unknown.slice(0, 3).join(", ")}` +
+          `${unknown.length > 3 ? ` (+${unknown.length - 3} more)` : ""}. ` +
+          `This model covers ${PMHC_MODEL_CARD.alleles} HLA alleles.`,
+      },
+      400,
+    );
   }
   const now = new Date().toISOString();
   const job: BatchJob = {
@@ -225,7 +230,7 @@ async function runBatch(body: unknown) {
     projectId: req.projectId,
     name: req.name,
     models: req.models,
-    totalSequences: req.sequences.length,
+    totalSequences: req.entries.length,
     processedSequences: 0,
     status: "running",
     uploadedFile: null,
@@ -241,12 +246,12 @@ async function runBatch(body: unknown) {
   setTimeout(() => {
     void (async () => {
       const results = await Promise.all(
-        req.sequences.map((sequence) => scoreFor(sequence, req.mhcAllele)),
+        req.entries.map((entry) => scoreFor(entry.peptide, entry.allele)),
       );
       store.putBatchJob({
         ...job,
         status: "completed",
-        processedSequences: req.sequences.length,
+        processedSequences: req.entries.length,
         results: { disclaimer: MODEL_DISCLAIMER, results },
         completedAt: new Date().toISOString(),
       });
@@ -255,61 +260,6 @@ async function runBatch(body: unknown) {
 
   return json(job);
 }
-
-async function mutationAnalysis(body: unknown) {
-  const req = mutationRequestSchema.parse(body);
-  const allele = req.mhcAllele || DEFAULT_ALLELE;
-  const original = await scoreFor(req.sequence, allele);
-  const chars = req.sequence.split("");
-  chars[req.position] = req.newAminoAcid;
-  const mutated = await scoreFor(chars.join(""), allele);
-
-  return json({
-    id: uid(),
-    originalSequence: req.sequence,
-    mutatedSequence: chars.join(""),
-    position: req.position,
-    originalAA: req.sequence[req.position],
-    mutatedAA: req.newAminoAcid,
-    impactScore: mutated.probability - original.probability,
-    model: req.model,
-    createdAt: new Date().toISOString(),
-    mhcAllele: allele,
-    originalPrediction: original,
-    mutatedPrediction: mutated,
-    disclaimer: MODEL_DISCLAIMER,
-  });
-}
-
-async function designGenerate(body: unknown) {
-  const req: DesignRequest = designRequestSchema.parse(body);
-  const allele = req.targetMhc || DEFAULT_ALLELE;
-  // HONESTY NOTE: a uniformly random sequence generator, not an AI design or
-  // optimization algorithm. `strategy` is recorded but does not influence
-  // generation or scoring in any way.
-  const AAs = "ACDEFGHIKLMNPQRSTVWY";
-  const suggestions = (await Promise.all(
-    Array.from({ length: 3 }, async () => {
-    const bytes = crypto.getRandomValues(new Uint8Array(req.length));
-    const sequence = Array.from(bytes, (b) => AAs[b % AAs.length]).join("");
-    const p = await scoreFor(sequence, allele);
-    return {
-      sequence,
-      predictedAffinity: p.probability,
-      confidence: p.confidence,
-      designStrategy: req.strategy,
-      rank: p.rank,
-      disclaimer:
-        "Uniformly random sequence generator — not a trained generative or optimization " +
-        "model. The sequences are random; only the binding score is from the trained model.",
-    };
-    }),
-  )).sort((a, b) => b.predictedAffinity - a.predictedAffinity);
-
-  return json({ suggestions });
-}
-
-// ------------------------------------------------------------------- routing
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -353,15 +303,7 @@ export async function localBackend(method: string, url: string, body?: unknown):
     if (M === "POST" && path === "/api/predict") return predict(body);
     if (M === "POST" && path === "/api/batch/create") return runBatch(body);
     if (M === "GET" && path === "/api/batch/jobs") return json(store.batchJobs());
-    if (M === "POST" && path === "/api/analysis/mutation") return mutationAnalysis(body);
-    if (M === "POST" && path === "/api/design/generate") return designGenerate(body);
-
     if (M === "GET" && path === "/api/predictions") return json(store.predictions());
-    if (M === "GET" && path === "/api/projects") return json(store.projects());
-    if (M === "POST" && path === "/api/projects") {
-      const data = insertProjectSchema.parse(body);
-      return json(store.addProject(data));
-    }
 
     if (M === "GET" && path.startsWith("/api/visualize/data/")) {
       return json({
@@ -370,25 +312,6 @@ export async function localBackend(method: string, url: string, body?: unknown):
           "figures below are the held-out numbers recorded when the model was trained.",
         modelCard: PMHC_MODEL_CARD,
       });
-    }
-
-    // HONESTY NOTE: no IEDB/UniProt/PDB client exists anywhere in this codebase.
-    // These report "not connected" / "not implemented" rather than fabricating results.
-    if (M === "GET" && path === "/api/databases") {
-      return json({
-        disclaimer: "No external database integrations are implemented in this app yet.",
-        databases: [
-          { id: "iedb", name: "IEDB", status: "not_connected", apiAvailable: false },
-          { id: "uniprot", name: "UniProt", status: "not_connected", apiAvailable: false },
-          { id: "pdb", name: "PDB", status: "not_connected", apiAvailable: false },
-        ],
-      });
-    }
-    if (path.startsWith("/api/databases/")) {
-      return json(
-        { message: "Not implemented. No external database integration exists in this app." },
-        501,
-      );
     }
 
     return json({ message: `No handler for ${M} ${path}` }, 404);

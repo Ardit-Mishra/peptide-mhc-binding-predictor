@@ -14,11 +14,67 @@ import AlleleSelect from "@/components/allele-select";
 import { useToast } from "@/hooks/use-toast";
 import type { BatchJob, BatchUploadRequest } from "@shared/schema";
 
+const AA_ONLY = /^[ACDEFGHIKLMNPQRSTVWY]+$/;
+
+/** One scored peptide-allele pair, as returned by the in-browser backend. */
+type BatchResultRow = {
+  sequence: string;
+  mhcAllele: string;
+  probability: number;
+  rank: string;
+  alleleSupportN: number | null;
+};
+
+type ParsedRow = { peptide: string; allele: string; usedFallback: boolean };
+
+/**
+ * Each line is `PEPTIDE` or `PEPTIDE,ALLELE` (comma, tab or semicolon).
+ *
+ * Binding is a property of the peptide-allele PAIR, so a row that names its own
+ * allele is scored against that allele. A row that doesn't falls back to the
+ * allele picked in the form — and `usedFallback` is surfaced in the UI, because
+ * the previous behaviour (scoring every row against HLA-A*02:01 with no
+ * indication) produced numbers that looked like results for pairings the user
+ * never asked for.
+ */
+export function parseBatchInput(
+  raw: string,
+  fallbackAllele: string,
+): { entries: ParsedRow[]; invalid: string[]; badLength: string[] } {
+  const entries: ParsedRow[] = [];
+  const invalid: string[] = [];
+  const badLength: string[] = [];
+
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith(">")) continue; // blank or FASTA header
+
+    const [rawPeptide = "", rawAllele = ""] = trimmed.split(/[,;\t]/, 2).map((s) => s.trim());
+    const peptide = rawPeptide.toUpperCase();
+
+    if (!AA_ONLY.test(peptide)) {
+      invalid.push(trimmed);
+    } else if (peptide.length < 8 || peptide.length > 11) {
+      badLength.push(peptide);
+    } else {
+      entries.push({
+        peptide,
+        allele: rawAllele || fallbackAllele,
+        usedFallback: rawAllele === "",
+      });
+    }
+  }
+  return { entries, invalid, badLength };
+}
+
 export default function BatchProcessing() {
   const [batchName, setBatchName] = useState("");
   const [sequences, setSequences] = useState("");
   const [selectedModels] = useState<string[]>(["xgb_pseudoseq"]);
   const [batchAllele, setBatchAllele] = useState("HLA-A*02:01");
+  // Live preview of how the input parses, so the pairing is visible before submit.
+  const parsed = parseBatchInput(sequences, batchAllele);
+  const fallbackCount = parsed.entries.filter((e) => e.usedFallback).length;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -38,17 +94,10 @@ export default function BatchProcessing() {
 
   // Create batch job mutation
   const createBatchMutation = useMutation({
+    // Must go through apiRequest: predictions are served by the in-browser
+    // backend, so a raw fetch() hits the static host and 404s.
     mutationFn: async (data: BatchUploadRequest) => {
-      const response = await fetch('/api/batch/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to create batch job');
-      }
+      const response = await apiRequest("POST", "/api/batch/create", data);
       return response.json();
     },
     onSuccess: () => {
@@ -97,15 +146,10 @@ export default function BatchProcessing() {
       return;
     }
 
-    // Parse sequences (handle FASTA format or simple list)
-    const sequenceLines = sequences.split('\n')
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith('>'))
-      .filter(line => /^[ACDEFGHIKLMNPQRSTVWY]+$/.test(line));
+    const { entries, invalid, badLength } = parseBatchInput(sequences, batchAllele);
 
     // The model encodes 8-11mers; anything else is rejected server-side as a
     // whole-batch 400, so catch it here and name the offending sequences.
-    const badLength = sequenceLines.filter((q) => q.length < 8 || q.length > 11);
     if (badLength.length > 0) {
       toast({
         title: "Unsupported peptide length",
@@ -117,7 +161,18 @@ export default function BatchProcessing() {
       return;
     }
 
-    if (sequenceLines.length === 0) {
+    if (invalid.length > 0) {
+      toast({
+        title: "Unreadable rows",
+        description:
+          `Use one peptide per line, optionally "PEPTIDE,HLA-A*02:01". Could not read: ` +
+          `${invalid.slice(0, 3).join(", ")}${invalid.length > 3 ? ` (+${invalid.length - 3} more)` : ""}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (entries.length === 0) {
       toast({
         title: "Error",
         description: "No valid peptide sequences found. Use only standard amino acid letters (A-Y).",
@@ -130,9 +185,43 @@ export default function BatchProcessing() {
       projectId: "default", // We'll add project management later
       name: batchName,
       models: selectedModels as any,
-      sequences: sequenceLines,
-      mhcAllele: batchAllele,
+      entries: entries.map(({ peptide, allele }) => ({ peptide, allele })),
     });
+  };
+
+  /** Rows a completed job actually produced, or [] while it is still running. */
+  const resultRows = (job: BatchJob): BatchResultRow[] => {
+    const r = job.results as { results?: BatchResultRow[] } | null;
+    return r?.results ?? [];
+  };
+
+  /**
+   * Export exactly what was scored — including the allele each peptide was
+   * paired with, and how many training measurements back that allele — so a
+   * downloaded CSV can't be read as allele-agnostic.
+   */
+  const downloadResults = (job: BatchJob) => {
+    const rows = resultRows(job);
+    if (rows.length === 0) return;
+    const header = ["peptide", "allele", "probability", "binding_call", "allele_training_n"];
+    const body = rows.map((r) =>
+      [
+        r.sequence,
+        r.mhcAllele,
+        r.probability.toFixed(4),
+        r.rank,
+        r.alleleSupportN ?? "not recorded",
+      ].join(","),
+    );
+    const csv = [header.join(","), ...body].join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${job.name.replace(/[^\w.-]+/g, "_") || "batch"}-predictions.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   };
 
   const getStatusIcon = (status: string) => {
@@ -189,17 +278,27 @@ export default function BatchProcessing() {
                 id="sequences"
                 value={sequences}
                 onChange={(e) => setSequences(e.target.value)}
-                placeholder="Enter sequences (one per line or FASTA format):&#10;AAGIGILTV&#10;GILGFVFTL&#10;>sequence3&#10;LLWNGPMAV"
+                placeholder={"One per line. Add an allele per row to pair them:\nGILGFVFTL,HLA-A*02:01\nKRWIILGLNK,HLA-B*27:05\nNLVPMVATV"}
                 rows={8}
                 data-testid="textarea-sequences"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                {sequences.split('\n').filter(line => line.trim() && !line.startsWith('>')).length} sequences detected
+              <p className="text-xs text-muted-foreground mt-1" data-testid="text-parse-summary">
+                {parsed.entries.length} peptide{parsed.entries.length === 1 ? "" : "s"} ready
+                {fallbackCount > 0 && (
+                  <>
+                    {" · "}
+                    <span className="text-amber-600 dark:text-amber-500">
+                      {fallbackCount} without an allele → {batchAllele}
+                    </span>
+                  </>
+                )}
+                {parsed.badLength.length > 0 && ` · ${parsed.badLength.length} wrong length`}
+                {parsed.invalid.length > 0 && ` · ${parsed.invalid.length} unreadable`}
               </p>
             </div>
 
             <div>
-              <Label>HLA allele</Label>
+              <Label>Allele for rows that don't specify one</Label>
               <div className="mt-2">
                 <AlleleSelect
                   value={batchAllele}
@@ -207,11 +306,12 @@ export default function BatchProcessing() {
                   testId="select-batch-allele"
                 />
               </div>
-              {/* Every peptide in the batch is scored against this allele. The
-                  batch used to send no allele at all and silently fall back to
-                  HLA-A*02:01, so results looked allele-specific but were not. */}
+              {/* Binding is a property of the peptide-allele pair. This used to
+                  score every row against one allele with nothing in the results
+                  saying so, which made unrequested pairings look like findings. */}
               <p className="text-xs text-muted-foreground mt-2">
-                All peptides in this batch are scored against this allele.
+                Rows written as <code className="font-mono">PEPTIDE,ALLELE</code> use their own allele.
+                This is only the fallback, and every result shows the allele it was actually scored against.
               </p>
             </div>
 
@@ -292,11 +392,48 @@ export default function BatchProcessing() {
                           </span>
                         </div>
 
-                        {job.status === 'completed' && (
-                          <Button size="sm" variant="outline" className="w-full mt-2">
-                            <Download className="w-4 h-4 mr-2" />
-                            Download Results
-                          </Button>
+                        {job.status === 'completed' && resultRows(job).length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            {/* Each row names the allele it was scored against.
+                                Binding is a peptide-allele property, so a result
+                                without its allele is not interpretable. */}
+                            <div className="overflow-x-auto rounded-md border border-border">
+                              <table className="w-full text-xs" data-testid={`table-results-${job.id}`}>
+                                <thead className="bg-muted/50 text-muted-foreground">
+                                  <tr>
+                                    <th className="px-2 py-1.5 text-left font-medium">Peptide</th>
+                                    <th className="px-2 py-1.5 text-left font-medium">Allele</th>
+                                    <th className="px-2 py-1.5 text-right font-medium">p(bind)</th>
+                                    <th className="px-2 py-1.5 text-right font-medium">Training n</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {resultRows(job).map((r, i) => (
+                                    <tr key={`${r.sequence}-${r.mhcAllele}-${i}`} className="border-t border-border">
+                                      <td className="px-2 py-1.5 font-mono">{r.sequence}</td>
+                                      <td className="px-2 py-1.5 font-mono text-muted-foreground">{r.mhcAllele}</td>
+                                      <td className="px-2 py-1.5 text-right font-mono tabular-nums">
+                                        {r.probability.toFixed(4)}
+                                      </td>
+                                      <td className="px-2 py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                                        {r.alleleSupportN?.toLocaleString() ?? "—"}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => downloadResults(job)}
+                              data-testid={`button-download-${job.id}`}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download CSV
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>

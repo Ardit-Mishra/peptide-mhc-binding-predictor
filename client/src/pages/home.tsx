@@ -1,272 +1,300 @@
-import { useState } from "react";
+/**
+ * The prediction bench.
+ *
+ * This app answers exactly one question — will this peptide bind this allele —
+ * so the page is that question and its answer, and nothing else. The previous
+ * layout was a 2/3 + 1/3 dashboard whose right rail held "Quick Actions",
+ * "Recent Activity" and a model-performance card, which pushed the actual
+ * result to third position in the left column.
+ *
+ * Two ideas drive the composition:
+ *
+ *   1. Binding is a property of the PAIR, not of the peptide. The peptide and
+ *      allele are therefore set as one joined specimen with an explicit "×"
+ *      between them, rather than as two unrelated form fields. This is the same
+ *      fact the batch defect got wrong by scoring every row against one allele.
+ *
+ *   2. The measurement is the hero. The probability is set large in tabular
+ *      mono over a tick scale, the way an instrument prints a reading, with the
+ *      evidence that qualifies it (training support, split, limitation) beneath
+ *      rather than beside it.
+ */
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
-import PredictionForm from "@/components/prediction-form";
-import ModelSelector from "@/components/model-selector";
-import PredictionResults from "@/components/prediction-results";
-import ModelPerformance from "@/components/model-performance";
-import RecentActivity from "@/components/recent-activity";
-import { Dna, Server, ChartLine, Clock, Download, Upload, Settings } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import type { PredictResponse } from "@shared/schema";
+import { api } from "@/lib/api";
+import { loadAlleleList } from "@/lib/pmhc-model";
+import { MODEL_KEYS, type PredictResponse } from "@shared/schema";
+import { PMHC_MODEL_CARD } from "@shared/pmhc-predictor";
+
+const AA = "ACDEFGHIKLMNPQRSTVWY";
+const AA_RE = new RegExp(`^[${AA}]+$`);
+
+type Allele = { allele: string; support?: { n: number } };
+
+function validate(peptide: string): string | null {
+  if (!peptide) return "Enter a peptide.";
+  if (!AA_RE.test(peptide)) return "Use the 20 standard amino-acid letters only.";
+  if (peptide.length < 8 || peptide.length > 11) return "MHC class I peptides are 8-11 residues.";
+  return null;
+}
 
 export default function Home() {
-  const [selectedModel, setSelectedModel] = useState<string>("cnn");
-  const [predictionResults, setPredictionResults] = useState<PredictResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [peptide, setPeptide] = useState("GILGFVFTL");
+  const [allele, setAllele] = useState("HLA-A*02:01");
+  const [alleles, setAlleles] = useState<Allele[]>([]);
+  const [result, setResult] = useState<PredictResponse | null>(null);
+  const [pending, setPending] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const readoutRef = useRef<HTMLDivElement>(null);
 
-  const handlePredictionComplete = (results: PredictResponse) => {
-    setPredictionResults(results);
-  };
+  useEffect(() => {
+    let active = true;
+    loadAlleleList()
+      .then((list) => active && setAlleles(list))
+      .catch(() => active && toast({
+        title: "Allele list unavailable",
+        description: "Reload the page to try again.",
+        variant: "destructive",
+      }));
+    return () => { active = false; };
+  }, [toast]);
 
-  const handlePredictionStart = () => {
-    setIsLoading(true);
-    setPredictionResults(null);
-  };
+  const error = touched ? validate(peptide) : null;
+  const support = useMemo(
+    () => alleles.find((a) => a.allele === allele)?.support?.n ?? null,
+    [alleles, allele],
+  );
 
-  const handlePredictionEnd = () => {
-    setIsLoading(false);
-  };
-
-  const handleDownloadResults = () => {
-    if (!predictionResults) {
+  async function measure() {
+    setTouched(true);
+    const problem = validate(peptide);
+    if (problem) return;
+    setPending(true);
+    setResult(null);
+    try {
+      const data = await api.predict({ sequence: peptide, model: MODEL_KEYS[0], mhcAllele: allele });
+      setResult(data);
+      requestAnimationFrame(() => readoutRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }));
+    } catch (e) {
       toast({
-        title: "No results to download",
-        description: "Please run a prediction first.",
+        title: "Prediction failed",
+        description: e instanceof Error ? e.message : "Unknown error",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setPending(false);
     }
-    
-    const data = JSON.stringify(predictionResults, null, 2);
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `prediction-${predictionResults.sequence}-${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast({
-      title: "Results downloaded",
-      description: "Prediction results have been saved to your downloads.",
-    });
-  };
+  }
+
+  const residues = peptide.toUpperCase().split("");
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border">
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="gradient-bg p-2 rounded-lg">
-                <Dna className="text-white text-lg sm:text-xl" />
-              </div>
-              <div>
-                <h1 className="text-lg sm:text-xl font-semibold text-foreground">
-                  Peptide–MHC Binding Predictor
-                </h1>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  Allele-conditioned HLA class I binding · runs in your browser
-                </p>
-              </div>
-            </div>
-
-            <div className="hidden sm:flex items-center space-x-2 text-sm w-full sm:w-auto">
-              <Server className="w-4 h-4 text-accent" />
-              <span className="text-muted-foreground">129 HLA alleles · in-browser</span>
-            </div>
-          </div>
-        </div>
+    <div className="mx-auto max-w-3xl px-4 pb-24">
+      {/* Identity: a hairline strip, not a card with a gradient logo tile. */}
+      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-border py-5">
+        <h1 className="text-[15px] font-semibold tracking-tight">Peptide–MHC binding</h1>
+        <p className="instrument-label">
+          {PMHC_MODEL_CARD.alleles} HLA alleles · runs in your browser
+        </p>
       </header>
 
-      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Prediction Form */}
-            <PredictionForm
-              onPredictionStart={handlePredictionStart}
-              onPredictionComplete={handlePredictionComplete}
-              onPredictionEnd={handlePredictionEnd}
-              selectedModel={selectedModel}
-            />
+      {/* ------------------------------------------------------ the specimen */}
+      <section className="mt-10" aria-labelledby="pair-heading">
+        <h2 id="pair-heading" className="instrument-label mb-3">Peptide × Allele</h2>
 
-            {/* Model Selection */}
-            <ModelSelector
-              selectedModel={selectedModel}
-              onModelSelect={setSelectedModel}
-            />
+        <div className="rounded-md border border-border bg-card">
+          <div className="grid grid-cols-1 items-stretch sm:grid-cols-[1fr_auto_1fr]">
+            {/* peptide */}
+            <div className="p-4">
+              <label htmlFor="peptide" className="instrument-label">Peptide</label>
+              <input
+                id="peptide"
+                value={peptide}
+                onChange={(e) => setPeptide(e.target.value.toUpperCase())}
+                onBlur={() => setTouched(true)}
+                onKeyDown={(e) => e.key === "Enter" && measure()}
+                spellCheck={false}
+                autoComplete="off"
+                aria-invalid={!!error}
+                aria-describedby={error ? "peptide-error" : "peptide-hint"}
+                className="seq mt-2 w-full border-0 border-b border-border bg-transparent pb-1 text-2xl text-foreground outline-none focus:border-primary"
+                data-testid="input-sequence"
+                placeholder="8-11 residues"
+              />
+              {/* Indexed residue strip: a peptide is read position by position,
+                  and P2/P9 anchors are what determine binding. */}
+              <div className="mt-4 flex flex-wrap gap-0.5" aria-hidden="true">
+                {residues.map((r, i) => (
+                  <span
+                    key={`${r}-${i}`}
+                    className={`flex h-10 w-7 flex-col items-center justify-center gap-1 border-b-2 font-mono text-[15px] leading-none ${
+                      AA.includes(r) ? "border-border text-foreground" : "border-destructive text-destructive"
+                    }`}
+                  >
+                    {r}
+                    <span className="text-[9px] tabular text-muted-foreground">{i + 1}</span>
+                  </span>
+                ))}
+              </div>
+              <p id="peptide-hint" className="mt-3 text-xs text-muted-foreground">
+                {residues.length} residues
+              </p>
+              {error && (
+                <p id="peptide-error" role="alert" className="mt-1 text-xs text-destructive">{error}</p>
+              )}
+            </div>
 
-            {/* Prediction Results */}
-            {predictionResults && (
-              <PredictionResults results={predictionResults} />
-            )}
+            {/* The join. Binding belongs to the pair — the operator says so. */}
+            <div
+              className="flex items-center justify-center border-y border-border px-5 font-mono text-lg text-muted-foreground sm:border-x sm:border-y-0"
+              aria-hidden="true"
+            >
+              ×
+            </div>
+
+            {/* allele */}
+            <div className="p-4">
+              <label className="instrument-label">MHC allele</label>
+              <Select value={allele} onValueChange={setAllele}>
+                <SelectTrigger
+                  className="seq mt-2 h-auto rounded-none border-0 border-b border-border bg-transparent px-0 pb-1 text-2xl focus:ring-0 focus:border-primary"
+                  data-testid="select-mhc-allele"
+                >
+                  <SelectValue>{allele}</SelectValue>
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  {/* Only trained alleles are offered, so the picker cannot ask
+                      the model for one it has never seen. */}
+                  {alleles.map(({ allele: a, support: s }) => (
+                    <SelectItem key={a} value={a} className="font-mono text-xs">
+                      {a}
+                      {s && <span className="ml-3 text-muted-foreground">n={s.n.toLocaleString()}</span>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-3 text-xs text-muted-foreground">
+                {support !== null
+                  ? <><span className="font-mono text-foreground">{support.toLocaleString()}</span> training measurements</>
+                  : "training support not recorded"}
+              </p>
+            </div>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Model Performance */}
-            <ModelPerformance />
-
-            {/* Recent Activity */}
-            <RecentActivity />
-
-            {/* Quick Actions */}
-            <div className="bg-card rounded-xl p-6 card-shadow">
-              <div className="flex items-center space-x-2 mb-4">
-                <ChartLine className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold text-foreground">Quick Actions</h2>
-              </div>
-
-              <div className="space-y-3">
-                <button 
-                  onClick={handleDownloadResults}
-                  className="w-full text-left p-3 border border-border rounded-lg hover:border-primary hover:bg-muted/50 transition-colors"
-                  data-testid="button-download-results"
-                >
-                  <div className="flex items-center space-x-3">
-                    <Download className="w-4 h-4 text-muted-foreground" />
-                    <div className="text-sm">
-                      <div className="text-foreground">Download Results</div>
-                      <div className="text-muted-foreground text-xs">Export prediction data</div>
-                    </div>
-                  </div>
-                </button>
-
-                <Link href="/batch">
-                  <button 
-                    className="w-full text-left p-3 border border-border rounded-lg hover:border-primary hover:bg-muted/50 transition-colors"
-                    data-testid="button-batch-predict"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Upload className="w-4 h-4 text-muted-foreground" />
-                      <div className="text-sm">
-                        <div className="text-foreground">Batch Predict</div>
-                        <div className="text-muted-foreground text-xs">Upload sequence file</div>
-                      </div>
-                    </div>
-                  </button>
-                </Link>
-
-                <Link href="/settings">
-                  <button 
-                    className="w-full text-left p-3 border border-border rounded-lg hover:border-primary hover:bg-muted/50 transition-colors"
-                    data-testid="button-model-settings"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Settings className="w-4 h-4 text-muted-foreground" />
-                      <div className="text-sm">
-                        <div className="text-foreground">Model Settings</div>
-                        <div className="text-muted-foreground text-xs">Configure parameters</div>
-                      </div>
-                    </div>
-                  </button>
-                </Link>
-              </div>
-            </div>
+          <div className="border-t border-border p-4">
+            <Button
+              onClick={measure}
+              disabled={pending}
+              className="w-full sm:w-auto"
+              data-testid="button-predict"
+            >
+              {pending ? <><span className="loading-spinner mr-2" />Measuring…</> : "Measure binding"}
+            </Button>
           </div>
         </div>
+      </section>
 
-        {/* Educational Disclaimer */}
-        <div className="mt-12 bg-muted/30 border border-accent/20 rounded-xl p-6">
-          <div className="flex items-start space-x-3">
-            <div className="w-2 h-2 bg-accent rounded-full mt-2 flex-shrink-0"></div>
-            <div>
-              <h3 className="font-semibold text-foreground mb-2">🎓 Educational Purpose & Legal Disclaimer</h3>
-              <div className="text-sm text-muted-foreground space-y-2">
-                <p>
-                  <strong>FOR EDUCATIONAL AND RESEARCH PURPOSES ONLY.</strong> This application is designed for academic learning, 
-                  research training, and educational demonstrations in computational biology and machine learning.
-                </p>
-                <p>
-                  <strong>Not for Clinical Use:</strong> Predictions provided by this tool are not validated for clinical, 
-                  diagnostic, therapeutic, or commercial applications. Do not use for medical decisions or patient care.
-                </p>
-                <p>
-                  <strong>No Warranties:</strong> Results are provided "as-is" without warranties of accuracy, completeness, 
-                  or fitness for any particular purpose. Users assume all responsibility for interpretation and use of results.
+      {/* ------------------------------------------------------- the readout */}
+      {result && (
+        <section ref={readoutRef} className="readout-enter mt-12" aria-labelledby="readout-heading">
+          <h2 id="readout-heading" className="instrument-label mb-3">Reading</h2>
+
+          <div className="rounded-md border border-border bg-card p-6 sm:p-8">
+            <div className="flex flex-wrap items-end justify-between gap-6">
+              <div>
+                <output className="readout-value block text-[clamp(48px,12vw,84px)]" data-testid="text-probability">
+                  {result.probability.toFixed(4)}
+                </output>
+                <div className="tick-scale mt-3 w-full max-w-[280px]" aria-hidden="true" />
+                <p className="instrument-label mt-2">P( IC50 &lt; 500 nM )</p>
+              </div>
+
+              <div className="text-right">
+                <p className="font-mono text-lg text-foreground" data-testid="text-call">{result.rank}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {result.probability > 0.8 ? "p > 0.8" : result.probability > 0.5 ? "0.5 < p ≤ 0.8" : "p ≤ 0.5"}
                 </p>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Footer */}
-        <footer className="mt-12 pt-8 border-t border-border">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">About This Tool</h3>
-              <p className="text-sm text-muted-foreground">
-                Educational machine learning models for peptide-MHC binding prediction, 
-                developed for academic research and learning purposes.
-              </p>
+            <div className="mt-6 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="progress-bar h-1.5"
+                style={{ ["--fill" as string]: result.probability }}
+                role="meter"
+                aria-valuenow={Number((result.probability * 100).toFixed(1))}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Binding probability"
+              />
             </div>
 
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Legal Compliance</h3>
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>• MIT License (Open Source)</li>
-                <li>• No Personal Health Information</li>
-                <li>• Academic Use License</li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Data Sources</h3>
-              <p className="text-sm text-muted-foreground">
-                None — this demo has no live database integration and predictions are not derived
-                from any training dataset. See{" "}
-                <Link href="/databases" className="text-primary hover:underline">
-                  Database Integration
-                </Link>{" "}
-                for the honest status of external database access.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Usage Rights</h3>
-              <ul className="space-y-1 text-sm text-muted-foreground">
-                <li>• Educational use permitted</li>
-                <li>• Research applications allowed</li>
-                <li>• Commercial use prohibited</li>
-                <li>• Attribution required</li>
-              </ul>
-            </div>
+            {/* What qualifies the number, directly beneath it. */}
+            <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-5 border-t border-border pt-6 sm:grid-cols-4">
+              <div>
+                <dt className="instrument-label">Pair</dt>
+                <dd className="seq mt-1 text-sm">{result.sequence}</dd>
+                <dd className="seq text-xs text-muted-foreground">{result.mhcAllele}</dd>
+              </div>
+              <div>
+                <dt className="instrument-label">Training support</dt>
+                <dd className="mt-1 font-mono text-sm tabular">
+                  {result.alleleSupportN?.toLocaleString() ?? "—"}
+                </dd>
+                <dd className="text-xs text-muted-foreground">measurements</dd>
+              </div>
+              <div>
+                <dt className="instrument-label">Compute</dt>
+                <dd className="mt-1 font-mono text-sm tabular">{result.computeTime}</dd>
+                <dd className="text-xs text-muted-foreground">in this browser</dd>
+              </div>
+              <div>
+                <dt className="instrument-label">Model</dt>
+                <dd className="mt-1 font-mono text-sm">XGBoost</dd>
+                <dd className="text-xs text-muted-foreground">+ pseudo-sequence</dd>
+              </div>
+            </dl>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-border">
-            <div className="text-center text-xs text-muted-foreground space-y-2">
-              <p className="font-medium text-foreground">
-                ⚖️ Legal Notice: This software is provided under educational license terms
-              </p>
-              <p>
-                By using this application, you acknowledge it is for educational purposes only and agree to comply with all 
-                applicable laws, regulations, and institutional policies. No medical or commercial use permitted.
-              </p>
-              <p className="mt-4">
-                Developed by Ardit Mishra •{" "}
-                <a 
-                  href="https://arditmishra.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  arditmishra.com
-                </a>
-                {" "}• Licensed under MIT License • Educational Use Only
-              </p>
-              <p className="text-xs opacity-75">
-                Static React app — no backend. An XGBoost model (held-out ROC-AUC 0.919)
-                runs client-side; see BENCHMARKS.md for evaluation and limitations.
-              </p>
-            </div>
+          {/* Ochre appears here and nowhere else: a stated limitation. */}
+          <div className="caveat mt-4">
+            <p className="instrument-label mb-1" style={{ color: "var(--caveat)" }}>Stated limitation</p>
+            <p className="text-sm text-muted-foreground">
+              This is a probability, not a calibrated confidence — calibration (Brier, ECE) has not been
+              measured, so read it alongside the training support above. Leave-one-allele-out
+              generalisation was never evaluated, so accuracy on an allele absent from training is
+              unknown. Research use only; not a clinical or diagnostic tool.
+            </p>
           </div>
-        </footer>
-      </main>
+        </section>
+      )}
+
+      {/* -------------------------------------------------------- the method */}
+      <section className="mt-12" aria-labelledby="method-heading">
+        <h2 id="method-heading" className="instrument-label mb-3">Method</h2>
+        <dl className="divide-y divide-border border-y border-border text-sm">
+          {[
+            ["Algorithm", PMHC_MODEL_CARD.algorithm],
+            ["Encoding", PMHC_MODEL_CARD.encoding],
+            ["Training data", `${PMHC_MODEL_CARD.trainingExamples.toLocaleString()} measurements · ${PMHC_MODEL_CARD.dataSource}`],
+            ["Split", PMHC_MODEL_CARD.split],
+            ["Held-out", `ROC-AUC ${PMHC_MODEL_CARD.rocAuc.toFixed(4)} · PR-AUC ${PMHC_MODEL_CARD.prAuc.toFixed(4)}`],
+          ].map(([k, v]) => (
+            <div key={k} className="grid grid-cols-1 gap-1 py-3 sm:grid-cols-[160px_1fr] sm:gap-4">
+              <dt className="instrument-label pt-0.5">{k}</dt>
+              <dd className="text-muted-foreground">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Scoring many pairs? <Link href="/batch" className="text-primary underline underline-offset-4">Batch prediction</Link> takes
+          a peptide and allele per row.
+        </p>
+      </section>
     </div>
   );
 }

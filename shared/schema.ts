@@ -25,7 +25,9 @@ export const predictionSchema = z.object({
   sequence: z.string(),
   model: z.string(),
   probability: z.number(),
-  confidence: z.number(),
+  // No `confidence` field: the model emits a probability and nothing else.
+  // Any "confidence" here was a restatement of that probability, not an
+  // uncertainty estimate, and read as though the model knew how sure it was.
   mhcAllele: z.string().nullable().optional(),
   computeTime: z.number(),
   createdAt: isoDate.nullable(),
@@ -139,7 +141,6 @@ export const predictResponseSchema = z.object({
   sequence: z.string(),
   model: z.string(),
   probability: z.number(),
-  confidence: z.number(),
   rank: z.string(),
   computeTime: z.string(),
   trainingAcc: z.string(),
@@ -159,10 +160,12 @@ export const batchUploadSchema = z.object({
   projectId: z.string(),
   name: z.string().min(1),
   models: z.array(modelEnum),
-  sequences: z.array(peptideSchema),
-  // Required, not optional. Scoring a batch against a silently-assumed allele
-  // produces numbers that look like results and are not.
-  mhcAllele: z.string().min(1, "Select an HLA allele"),
+  // One allele PER PEPTIDE. Binding is a property of the peptide-allele pair,
+  // so a batch scored against a single assumed allele produces numbers that
+  // look like results and are not. The caller must state the pairing it wants.
+  entries: z
+    .array(z.object({ peptide: peptideSchema, allele: z.string().min(1, "Select an HLA allele") }))
+    .min(1, "Add at least one peptide"),
 });
 
 export const mutationRequestSchema = z.object({
