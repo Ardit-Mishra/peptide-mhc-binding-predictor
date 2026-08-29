@@ -63,11 +63,11 @@ record for the full diff.
 Trained in `ml-training/peptide-mhc/train_baseline.py`, exported to a compact JSON format the
 browser can traverse (`shared/pmhc-predictor.ts` reimplements XGBoost tree traversal in
 TypeScript; parity with the original Python model is checked by
-`scripts/verify-parity.mjs` + `scripts/verify_parity.py`, max abs. difference 7.0e-08).
+`scripts/verify-parity.mjs` + `scripts/verify_parity.py`, max abs. difference 7.5e-08).
 
 | Model | Data / Split | Held-out ROC-AUC | Held-out PR-AUC |
 |-------|--------------|-------------------|-------------------|
-| XGBoost baseline (allele pseudo-sequence conditioning) | MHCflurry curated data, leak-free peptide-grouped split | 0.9185 | 0.8056 |
+| XGBoost baseline (allele pseudo-sequence conditioning) | MHCflurry curated data, leak-free peptide-grouped split | 0.9188 | 0.8085 |
 
 "Peptide-grouped split" means no peptide sequence appears in both the training and test sets,
 which avoids the inflated scores that come from sequence leakage across the split.
@@ -81,7 +81,7 @@ and source files, or the live evaluation panel on the app's home page:
 - **Leave-one-allele-out**: macro ROC-AUC **0.842** across 14 held-out alleles (n-weighted 0.867),
   degrading by locus (HLA-A 0.874 → HLA-B 0.859 → HLA-C 0.749) and correlating with pseudo-sequence
   distance to the nearest trained allele (Pearson r = -0.677). An allele the model has never seen
-  should be trusted noticeably less than the 0.9185 headline number.
+  should be trusted noticeably less than the 0.9188 headline number.
 - **Calibration**: the raw sigmoid this app displays has Brier 0.112 / ECE 0.093 (moderately
   miscalibrated, under-confident). Platt scaling would cut ECE to 0.008 with no ROC-AUC loss, but
   that correction is **not applied in production** — the probability shown is a ranking signal,

@@ -6,7 +6,7 @@
  * measurements, evaluated once on a peptide-GROUPED held-out split so no
  * peptide appears in both training and test.
  *
- *   held-out ROC-AUC 0.9185   PR-AUC 0.8056   n = 120,000   129 alleles
+ *   held-out ROC-AUC 0.9188   PR-AUC 0.8085   n = 120,000   129 alleles
  *
  * Features are one-hot encodings of the peptide and of the allele's
  * pseudo-sequence. Because one-hot encoding is exact integer work, the browser
@@ -179,8 +179,8 @@ export const PMHC_MODEL_CARD = {
   alleles: 129,
   split: "peptide-grouped 80/20 — no peptide appears in both train and test",
   dataSource: "MHCflurry-curated public binding measurements",
-  rocAuc: 0.9185,
-  prAuc: 0.8056,
+  rocAuc: 0.9188,
+  prAuc: 0.8085,
   testRows: 23866,
   testPositiveRate: 0.2782,
   note:
@@ -188,26 +188,18 @@ export const PMHC_MODEL_CARD = {
     "model because the one-hot encoding is exact integer arithmetic.",
 
   /**
-   * IMPORTANT PROVENANCE NOTE: rocAuc/prAuc above describe the EXACT model
-   * bytes shipped in client/public/models/pmhc_model.json (matches this
-   * training run's own metrics to 4 decimal places). The loao/calibration/
-   * splitLadder numbers below come from a LATER re-run of the same
-   * train_baseline.py pipeline (identical code, hyperparameters, seed=42)
-   * whose own peptide-grouped ROC-AUC came out 0.9188/0.8085 instead of
-   * 0.9185/0.8056 -- a ~0.0003 gap traced to xgboost/sklearn/numpy library
-   * version drift between the two training environments, not a different
-   * model or data (see ml-training/peptide-mhc/pmhc_metrics_calibration.json
-   * library_versions, and the MLflow run log which records this explicitly).
-   * Treat the studies below as describing "this model's pipeline" rather
-   * than "these exact deployed weights" -- the gap is small enough, and
-   * disclosed clearly enough, to still be the most honest generalization/
-   * calibration evidence available, rather than none at all.
+   * PROVENANCE: rocAuc/prAuc above are read directly from
+   * ml-training/peptide-mhc/pmhc_metrics.json (train_baseline.py's own
+   * output), which is also the exact model exported to
+   * client/public/models/pmhc_model.json -- verified by
+   * scripts/verify_parity.py (browser vs. Python predictions match to
+   * float32 noise, see BENCHMARKS.md "Browser/Python parity"). The
+   * loao/calibration/splitLadder numbers below are a re-run of the identical
+   * pipeline (same code, hyperparameters, seed=42); its own peptide-grouped
+   * rung reproduces test_roc_auc/test_pr_auc from pmhc_metrics.json to full
+   * float precision (see pmhc_metrics_split_ladder.json rung 2), so every
+   * number on this card now describes the one model actually deployed.
    */
-  reproducibilityNote:
-    "loao/calibration/splitLadder were measured on a re-run of the same " +
-    "pipeline, not the exact deployed model bytes -- its own peptide-grouped " +
-    "ROC-AUC came out 0.9188 vs the deployed model's 0.9185, a ~0.0003 gap " +
-    "from library-version drift (xgboost/sklearn/numpy), not a different model.",
 
   /**
    * Leave-one-allele-out: 14 of 129 trained alleles, spanning HLA-A/B/C and a
@@ -261,10 +253,8 @@ export const PMHC_MODEL_CARD = {
   /**
    * Same re-run pipeline, four split difficulties — shows how much of the
    * headline number is split choice rather than model quality. The
-   * "peptide-grouped" rung is this STUDY's own reproduction of the
-   * production split (0.9188), not the deployed model's own 0.9185 — see
-   * `reproducibilityNote` above for the ~0.0003 library-version gap between
-   * the two.
+   * "peptide-grouped" rung reproduces the deployed model's own rocAuc/prAuc
+   * above to full float precision (see PROVENANCE comment above).
    */
   splitLadder: {
     randomSplit: { rocAuc: 0.927, prAuc: 0.8367, label: "random (leaks across split)" },

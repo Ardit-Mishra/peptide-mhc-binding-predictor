@@ -11,18 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A real trained model is now served.** XGBoost (800 trees) over a one-hot peptide
   and the MHC allele pseudo-sequence, trained on 120,000 MHCflurry-curated affinity
   measurements across 129 HLA-A/B/C alleles. Single held-out evaluation on a
-  peptide-grouped split: **ROC-AUC 0.9185, PR-AUC 0.8056**.
+  peptide-grouped split: **ROC-AUC 0.9188, PR-AUC 0.8085**.
 - Inference runs **client-side**. `shared/pmhc-predictor.ts` reimplements XGBoost
   tree traversal in TypeScript; `scripts/verify-parity.mjs` + `scripts/verify_parity.py`
-  check it against the original Python model (max difference **7.0e-08** over 516
-  pairs spanning all 129 alleles; 0.077 ms per prediction).
+  check it against the original Python model (max difference **7.5e-08** over 516
+  pairs spanning all 129 alleles; 0.089 ms per prediction).
 - The allele picker now lists all 129 trained alleles with their training-row counts,
   and the app refuses to score an allele the model never saw.
 
 ### Changed
 - The allele selection is now **fed to the model**. Previously the UI collected an
-  allele and discarded it. Control: `GILGFVFTL` scores 0.906 on HLA-A*02:01 and
-  0.194 on HLA-B*07:02.
+  allele and discarded it. Control: `GILGFVFTL` scores 0.895 on HLA-A*02:01 and
+  0.214 on HLA-B*07:02.
 - Default example peptide is now `GILGFVFTL` (influenza M1, HLA-A*02:01) instead of
   `SIINFEKL`, which is a mouse H-2Kb epitope and a poor default for an HLA-only model.
 - Peptide input is restricted to 8-11 residues, the range the model was trained on.

@@ -62,5 +62,5 @@ test("encoder: same peptide, different allele gives a different score", () => {
 });
 
 test("encoder: rank label matches the probability thresholds", () => {
-  assert.equal(predictor.predict("GILGFVFTL", "HLA-A*02:01").rank, "Strong"); // ~0.906
+  assert.equal(predictor.predict("GILGFVFTL", "HLA-A*02:01").rank, "Strong"); // ~0.895
 });

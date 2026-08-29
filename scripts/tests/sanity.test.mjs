@@ -27,10 +27,10 @@ const TOL = 1e-3;
 // peptide, allele, expected p(bind), label — from BENCHMARKS.md's
 // "Biological sanity check" table, literature-known immunodominant epitopes.
 const KNOWN_EPITOPES = [
-  ["GILGFVFTL", "HLA-A*02:01", 0.906, "Influenza A M1 58-66"],
-  ["NLVPMVATV", "HLA-A*02:01", 0.907, "CMV pp65"],
-  ["GLCTLVAML", "HLA-A*02:01", 0.915, "EBV BMLF1"],
-  ["KRWIILGLNK", "HLA-B*27:05", 0.785, "HIV-1 gag KK10"],
+  ["GILGFVFTL", "HLA-A*02:01", 0.895, "Influenza A M1 58-66"],
+  ["NLVPMVATV", "HLA-A*02:01", 0.918, "CMV pp65"],
+  ["GLCTLVAML", "HLA-A*02:01", 0.921, "EBV BMLF1"],
+  ["KRWIILGLNK", "HLA-B*27:05", 0.762, "HIV-1 gag KK10"],
 ];
 
 for (const [peptide, allele, expected, label] of KNOWN_EPITOPES) {
@@ -46,12 +46,12 @@ for (const [peptide, allele, expected, label] of KNOWN_EPITOPES) {
 test("sanity: same peptide on the wrong allele collapses (proves the allele is actually used)", () => {
   const right = predictor.predict("GILGFVFTL", "HLA-A*02:01").probability;
   const wrong = predictor.predict("GILGFVFTL", "HLA-B*07:02").probability;
-  assert.ok(Math.abs(right - 0.906) < TOL, `right-allele baseline drifted: ${right}`);
-  assert.ok(Math.abs(wrong - 0.194) < TOL, `wrong-allele score drifted: ${wrong}`);
+  assert.ok(Math.abs(right - 0.895) < TOL, `right-allele baseline drifted: ${right}`);
+  assert.ok(Math.abs(wrong - 0.214) < TOL, `wrong-allele score drifted: ${wrong}`);
   assert.ok(right - wrong > 0.5, "wrong-allele score should collapse relative to the correct allele");
 });
 
 test("sanity: poly-alanine (no anchor residues) scores low", () => {
   const { probability } = predictor.predict("AAAAAAAAA", "HLA-A*02:01");
-  assert.ok(Math.abs(probability - 0.361) < TOL, `expected ~0.361, got ${probability.toFixed(4)}`);
+  assert.ok(Math.abs(probability - 0.382) < TOL, `expected ~0.382, got ${probability.toFixed(4)}`);
 });

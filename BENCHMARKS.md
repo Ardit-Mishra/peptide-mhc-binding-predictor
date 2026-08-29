@@ -26,8 +26,8 @@ from and no validation score reported as a test score.
 
 | Metric | Value |
 |---|---|
-| ROC-AUC | **0.9185** |
-| PR-AUC | **0.8056** |
+| ROC-AUC | **0.9188** |
+| PR-AUC | **0.8085** |
 | Test rows | 23,866 (27.8% binders) |
 
 Published MHC-I predictors trained on far more data and with allele-aware
@@ -46,17 +46,15 @@ state of the art.
 
 ## Leave-one-allele-out generalization
 
-**Provenance caveat**: the studies below (LOAO, calibration, split ladder) were
-run against a later re-run of `train_baseline.py` — same code, same
-hyperparameters, same `random_state=42` — not the exact model bytes in
-`client/public/models/pmhc_model.json`. That re-run's own peptide-grouped
-ROC-AUC came out 0.9188 / PR-AUC 0.8085, versus the deployed model's 0.9185 /
-0.8056 above — a ~0.0003 gap traced to xgboost/sklearn/numpy library-version
-drift between the two training environments (see `library_versions` in each
-JSON below), not a different model or dataset. Disclosed here rather than
-rounded away.
+The studies below (LOAO, calibration, split ladder) are a re-run of
+`train_baseline.py` — same code, same hyperparameters, same `random_state=42`
+— and reproduce that run's own peptide-grouped ROC-AUC/PR-AUC (0.9188 / 0.8085)
+to full float precision, so they describe the exact model exported to
+`client/public/models/pmhc_model.json` (see `pmhc_metrics_split_ladder.json`
+rung 2 against `pmhc_metrics.json`, and the browser/Python parity check
+below).
 
-The 0.9185 above describes alleles the model was trained on. To measure the
+The 0.9188 above describes alleles the model was trained on. To measure the
 harder, more useful case — an allele absent from training entirely — 14 of the
 129 trained alleles (spanning HLA-A/B/C and a range of prevalence; not
 exhaustive, for compute budget) were each held out completely and re-trained
@@ -109,13 +107,13 @@ diagram: `ml-training/peptide-mhc/pmhc_metrics_calibration.json` and
 ## Split difficulty ladder
 
 The same 120,000-row dataset and model hyperparameters, scored on four splits
-of increasing difficulty, shows how much of 0.9185 is a property of the split
+of increasing difficulty, shows how much of 0.9188 is a property of the split
 rather than the model:
 
 | Split | ROC-AUC | PR-AUC |
 |---|---|---|
 | Random (leaks — same peptide can land in both train and test) | 0.9270 | 0.8367 |
-| Peptide-grouped (**same split as production — see provenance caveat above**) | 0.9188 | 0.8085 |
+| Peptide-grouped (**same split as production**) | 0.9188 | 0.8085 |
 | Sequence-cluster (approximate, single-substitution union-find) | 0.9144 | 0.8074 |
 | Allele-held-out (LOAO, above) | 0.8419 | 0.6432 |
 
@@ -130,18 +128,18 @@ restricting alleles:
 
 | Peptide | Allele | p(bind) | Epitope |
 |---|---|---|---|
-| GILGFVFTL | HLA-A\*02:01 | **0.906** | Influenza A M1 58-66 |
-| NLVPMVATV | HLA-A\*02:01 | **0.907** | CMV pp65 |
-| GLCTLVAML | HLA-A\*02:01 | **0.915** | EBV BMLF1 |
-| KRWIILGLNK | HLA-B\*27:05 | **0.785** | HIV-1 gag KK10 |
-| RAKFKQLL | HLA-B\*08:01 | 0.566 | EBV BZLF1 |
+| GILGFVFTL | HLA-A\*02:01 | **0.895** | Influenza A M1 58-66 |
+| NLVPMVATV | HLA-A\*02:01 | **0.918** | CMV pp65 |
+| GLCTLVAML | HLA-A\*02:01 | **0.921** | EBV BMLF1 |
+| KRWIILGLNK | HLA-B\*27:05 | **0.762** | HIV-1 gag KK10 |
+| RAKFKQLL | HLA-B\*08:01 | 0.535 | EBV BZLF1 |
 
 Two controls matter more than the positives:
 
 | Case | p(bind) | Why it matters |
 |---|---|---|
-| GILGFVFTL on HLA-B\*07:02 | **0.194** | Same peptide, wrong allele. The score collapses from 0.906, so the model is genuinely conditioning on the allele rather than scoring peptides alone. |
-| AAAAAAAAA on HLA-A\*02:01 | 0.361 | Poly-alanine has no anchor residues and scores low. |
+| GILGFVFTL on HLA-B\*07:02 | **0.214** | Same peptide, wrong allele. The score collapses from 0.895, so the model is genuinely conditioning on the allele rather than scoring peptides alone. |
+| AAAAAAAAA on HLA-A\*02:01 | 0.382 | Poly-alanine has no anchor residues and scores low. |
 
 The wrong-allele control is the important one: the earlier version of this
 project fed the allele to the UI but never to the model. It does now.
@@ -161,9 +159,9 @@ Result on 516 peptide/allele pairs spanning all 129 alleles and lengths 8-11:
 
 | | |
 |---|---|
-| Max abs. difference | **7.0e-08** |
+| Max abs. difference | **7.5e-08** |
 | Mean abs. difference | 1.1e-08 |
-| Speed | **0.077 ms** per prediction (single-threaded JS) |
+| Speed | **0.089 ms** per prediction (single-threaded JS) |
 
 The residual is float32 rounding in the tree-sum accumulation, not a logic
 difference. The check fails the build if any difference exceeds 1e-06.

@@ -12,7 +12,7 @@ export default function Visualization() {
 
   // Held-out evaluation of the model this app actually serves.
   const heldOutEval = [
-    { model: 'XGBoost + allele pseudo-seq', rocAuc: 0.9185, prAuc: 0.8056 },
+    { model: 'XGBoost + allele pseudo-seq', rocAuc: 0.9188, prAuc: 0.8085 },
   ];
 
   // Charts below are built from predictions made in THIS browser. With no

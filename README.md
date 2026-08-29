@@ -33,17 +33,18 @@ HLA-A\*02:01, its real restricting allele, and **0.194** on HLA-B\*07:02.
 | Training data | MHCflurry-curated public binding affinities |
 | Rows / alleles | 120,000 / 129 HLA-A, -B, -C |
 | Split | peptide-grouped 80/20 — no peptide in both train and test |
-| **Held-out ROC-AUC** | **0.9185** |
-| **Held-out PR-AUC** | **0.8056** |
+| **Held-out ROC-AUC** | **0.9188** |
+| **Held-out PR-AUC** | **0.8085** |
 
 A single held-out evaluation. Full numbers, limitations, and the biological
 sanity checks are in [BENCHMARKS.md](BENCHMARKS.md).
 
-**What this model does not do:** leave-one-allele-out generalization was never
-measured, so its accuracy on an allele absent from training is unknown. Allele
-support is uneven — HLA-A\*02:01 has 14,387 training measurements and the long
-tail has a few hundred — so the app shows the count for whatever allele you pick.
-Only quantitative affinity data was used; mass-spectrometry ligand data, which
+**What this model does not do:** on an allele withheld from training entirely
+(leave-one-allele-out), macro ROC-AUC drops to 0.842 — noticeably worse, and
+worse still for HLA-C (0.749), the least-represented locus. Allele support is
+uneven — HLA-A\*02:01 has 14,387 training measurements and the long tail has a
+few hundred — so the app shows the count for whatever allele you pick. Only
+quantitative affinity data was used; mass-spectrometry ligand data, which
 modern predictors lean on heavily, was excluded.
 
 ## Client-side inference
@@ -58,11 +59,11 @@ uv run --with xgboost --with "numpy<2" python scripts/verify_parity.py
 ```
 
 Across 516 peptide/allele pairs covering all 129 alleles and lengths 8-11, the
-largest disagreement with the original Python model is **7.0e-08** — float32
+largest disagreement with the original Python model is **7.5e-08** — float32
 rounding in the tree-sum accumulation, not a logic difference. The check fails
 above 1e-06.
 
-Inference costs **0.077 ms** per prediction. The model is a 2.6 MB JSON
+Inference costs **0.089 ms** per prediction. The model is a 2.6 MB JSON
 (**658 KB** gzipped) fetched on first prediction rather than at page load; the
 allele table is a further 12 KB.
 

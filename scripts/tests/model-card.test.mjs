@@ -38,22 +38,20 @@ test("model card: trainingExamples matches the sum of per-allele training counts
   );
 });
 
-test("model card: rocAuc is close to the split ladder's own peptide-grouped reproduction (documented library-version gap only)", () => {
-  // These are deliberately NOT required to be exactly equal: rocAuc describes
-  // the exact deployed model bytes, while splitLadder.peptideGrouped is a
-  // later re-run of the same pipeline that came out ~0.0003 different due to
-  // xgboost/sklearn/numpy version drift (see reproducibilityNote). This test
-  // guards the SIZE of that gap, not its existence -- if it ever grows past a
-  // rounding difference, something more than library drift has happened.
-  const gap = Math.abs(PMHC_MODEL_CARD.rocAuc - PMHC_MODEL_CARD.splitLadder.peptideGrouped.rocAuc);
-  assert.ok(
-    gap > 0 && gap < 0.001,
-    `expected a small (<0.001) library-version-sized gap, got ${gap.toFixed(4)} -- ` +
-      `re-check reproducibilityNote still describes reality`,
+test("model card: rocAuc matches the split ladder's own peptide-grouped reproduction", () => {
+  // rocAuc/prAuc and splitLadder.peptideGrouped are now both read from the
+  // same training run (see the PROVENANCE comment on PMHC_MODEL_CARD), so
+  // they should agree to the 4 decimal places both are rounded to -- any
+  // gap here means one of the two has drifted from its source again.
+  assert.equal(
+    PMHC_MODEL_CARD.rocAuc.toFixed(4),
+    PMHC_MODEL_CARD.splitLadder.peptideGrouped.rocAuc.toFixed(4),
+    "rocAuc and splitLadder.peptideGrouped.rocAuc should describe the same evaluation run",
   );
-  assert.ok(
-    PMHC_MODEL_CARD.reproducibilityNote.length > 0,
-    "a gap this real must stay disclosed in reproducibilityNote, not silently rounded away",
+  assert.equal(
+    PMHC_MODEL_CARD.prAuc.toFixed(4),
+    PMHC_MODEL_CARD.splitLadder.peptideGrouped.prAuc.toFixed(4),
+    "prAuc and splitLadder.peptideGrouped.prAuc should describe the same evaluation run",
   );
 });
 
@@ -105,6 +103,30 @@ test(
     assert.ok(Math.abs(PMHC_MODEL_CARD.loao.macroRocAuc - agg.macro_roc_auc) < 5e-4);
     assert.ok(Math.abs(PMHC_MODEL_CARD.loao.nWeightedRocAuc - agg.n_weighted_roc_auc) < 5e-4);
     assert.equal(PMHC_MODEL_CARD.loao.nAlleles, agg.n_alleles);
+  },
+);
+
+test(
+  "model card: PMHC_MODEL_CARD.rocAuc/prAuc match ml-training's pmhc_metrics.json (local checkout only)",
+  { skip: !haveTrainingRepo && "ml-training is a separate repo, not present in this checkout" },
+  () => {
+    // This is the exact drift a past review caught: rocAuc/prAuc's own code
+    // comment named pmhc_metrics.json as their source, but nothing ever
+    // opened that file and compared it -- so a stale hardcoded number was
+    // invisible to CI. Open it and compare, for real, every run.
+    const src = JSON.parse(readFileSync(join(trainingRepo, "pmhc_metrics.json"), "utf8"));
+    assert.equal(
+      PMHC_MODEL_CARD.rocAuc.toFixed(4),
+      src.test_roc_auc.toFixed(4),
+      `PMHC_MODEL_CARD.rocAuc (${PMHC_MODEL_CARD.rocAuc}) does not match ` +
+        `pmhc_metrics.json's test_roc_auc (${src.test_roc_auc})`,
+    );
+    assert.equal(
+      PMHC_MODEL_CARD.prAuc.toFixed(4),
+      src.test_pr_auc.toFixed(4),
+      `PMHC_MODEL_CARD.prAuc (${PMHC_MODEL_CARD.prAuc}) does not match ` +
+        `pmhc_metrics.json's test_pr_auc (${src.test_pr_auc})`,
+    );
   },
 );
 

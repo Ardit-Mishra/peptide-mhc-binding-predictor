@@ -265,10 +265,12 @@ export default function Home() {
           <div className="caveat mt-4">
             <p className="instrument-label mb-1" style={{ color: "var(--caveat)" }}>Stated limitation</p>
             <p className="text-sm text-muted-foreground">
-              This is a probability, not a calibrated confidence — calibration (Brier, ECE) has not been
-              measured, so read it alongside the training support above. Leave-one-allele-out
-              generalisation was never evaluated, so accuracy on an allele absent from training is
-              unknown. Research use only; not a clinical or diagnostic tool.
+              This is a raw, uncalibrated probability — Platt scaling was measured to fix it
+              (ECE 0.093 → 0.008) but is not applied in production, so read it alongside the
+              training support above. If this allele is one the model has never trained on,
+              expect noticeably worse accuracy (leave-one-allele-out macro ROC-AUC drops to
+              0.842 — see "What this model can and can't do" below). Research use only; not a
+              clinical or diagnostic tool.
             </p>
           </div>
         </section>
@@ -304,7 +306,7 @@ export default function Home() {
         <h2 id="eval-heading" className="instrument-label mb-3">What this model can and can't do</h2>
 
         {/* Split ladder: same data, four difficulties, same held-out metric.
-            The point of this table is that 0.9185 is not one fixed truth —
+            The point of this table is that 0.9188 is not one fixed truth —
             it is a function of how hard the split is. */}
         <div className="rounded-md border border-border bg-card p-5">
           <div className="mb-3 flex items-center gap-2">
@@ -343,9 +345,8 @@ export default function Home() {
             The random split leaks (the same peptide can appear in train and test) and reads highest; the
             allele-held-out row is the honest floor. This app's deployed model itself scores{" "}
             <span className="font-mono tabular text-foreground">{PMHC_MODEL_CARD.rocAuc.toFixed(4)}</span> on its
-            own peptide-grouped test set — the table's peptide-grouped row ({PMHC_MODEL_CARD.splitLadder.peptideGrouped.rocAuc.toFixed(4)})
-            is a later re-run of the identical pipeline (same code, same seed) used to produce the rows below it;
-            the ~0.0003 gap between the two is library-version drift (xgboost/sklearn/numpy), not a different model.
+            own peptide-grouped test set — the same number as the table's peptide-grouped row, read directly from
+            the training run's own metrics file (see the model card's provenance note in source).
           </p>
         </div>
 
