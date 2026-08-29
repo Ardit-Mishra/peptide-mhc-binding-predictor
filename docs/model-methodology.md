@@ -49,33 +49,59 @@ are not loaded by the server (see `docs/architecture.md`, "Model Loading").
 **In short: any probability, confidence, or accuracy value the app currently displays is
 illustrative demonstration output, not a model prediction.**
 
-## Real Model (In Progress)
+## Current State (superseded — read `client/src/lib/pmhc-model.ts` and `shared/pmhc-predictor.ts`)
 
-A real, trained model is being developed and evaluated offline in a separate project
-(`ml-training/peptide-mhc`) and is **not yet integrated into this application**. It is not the
-architecture UI currently exposes (no CNN/BiLSTM/Transformer), and its numbers below describe
-held-out offline evaluation only — never this app's live output.
+**This section above described an earlier version of this app.** As of the model integration
+recorded in `docs/CHANGE-RECORD-2026-08-26.md`, the running application no longer uses the
+`Math.random()` placeholder: it loads the same XGBoost model described below as static JSON
+assets and runs it client-side. The five fake "architectures" (CNN/BiLSTM/Transformer) are gone.
+Kept above, unedited, as the historical record of what this app used to be — see the change
+record for the full diff.
+
+## The model this app actually serves
+
+Trained in `ml-training/peptide-mhc/train_baseline.py`, exported to a compact JSON format the
+browser can traverse (`shared/pmhc-predictor.ts` reimplements XGBoost tree traversal in
+TypeScript; parity with the original Python model is checked by
+`scripts/verify-parity.mjs` + `scripts/verify_parity.py`, max abs. difference 7.0e-08).
 
 | Model | Data / Split | Held-out ROC-AUC | Held-out PR-AUC |
 |-------|--------------|-------------------|-------------------|
-| XGBoost baseline (allele pseudo-sequence conditioning) | MHCflurry curated data, leak-free peptide-grouped split | 0.919 | -- |
+| XGBoost baseline (allele pseudo-sequence conditioning) | MHCflurry curated data, leak-free peptide-grouped split | 0.9185 | 0.8056 |
 
 "Peptide-grouped split" means no peptide sequence appears in both the training and test sets,
-which avoids the inflated scores that come from sequence leakage across the split. Integrating
-this model into the running application (replacing the placeholder logic above) is separate,
-in-progress work and is not part of this document's demonstration description.
+which avoids the inflated scores that come from sequence leakage across the split.
+
+## Generalization and calibration (measured, not assumed)
+
+The single held-out number above describes alleles the model was trained on and its raw,
+uncalibrated output. Both gaps have since been measured — see `BENCHMARKS.md` for full detail
+and source files, or the live evaluation panel on the app's home page:
+
+- **Leave-one-allele-out**: macro ROC-AUC **0.842** across 14 held-out alleles (n-weighted 0.867),
+  degrading by locus (HLA-A 0.874 → HLA-B 0.859 → HLA-C 0.749) and correlating with pseudo-sequence
+  distance to the nearest trained allele (Pearson r = -0.677). An allele the model has never seen
+  should be trusted noticeably less than the 0.9185 headline number.
+- **Calibration**: the raw sigmoid this app displays has Brier 0.112 / ECE 0.093 (moderately
+  miscalibrated, under-confident). Platt scaling would cut ECE to 0.008 with no ROC-AUC loss, but
+  that correction is **not applied in production** — the probability shown is a ranking signal,
+  not a calibrated percentage.
+- **Mutation scan** (`/mutation-scan` in the app): live in-silico saturation mutagenesis —
+  every position of a peptide substituted with all 20 amino acids and re-scored, rendered as a
+  heatmap. This shows the trained model's own positional sensitivity; it is explicitly not a
+  comparison to literature anchor-residue motifs, because no such motif dataset is checked into
+  this repo to cite honestly.
 
 ## Limitations
 
-- The application currently in production uses simulated (random) inference, not a trained
-  model. See "Current State" above.
-- The real, offline-evaluated model described above has its own limitations: training data
-  has inherent biases toward well-studied alleles (particularly HLA-A*02:01); it addresses
-  peptide-MHC class I binding only, not class II; and held-out performance may not generalize
-  to novel alleles or peptide families outside the training distribution.
-- For production-grade predictions from the real model, a Python-based inference backend or
-  ONNX runtime integration would be required to serve it from this application — that
-  integration work is out of scope for this document.
+- Training data has inherent biases toward well-studied alleles (particularly HLA-A\*02:01,
+  14,387 training measurements vs. a few hundred for the long tail).
+- Addresses peptide-MHC class I binding only, not class II.
+- Held-out performance on a genuinely novel allele is measured above (LOAO) and is materially
+  lower than the trained-allele number — this is stated in the app itself, not left implicit.
+- Only quantitative affinity measurements were used; mass-spectrometry ligand data, which modern
+  predictors rely on heavily, was excluded.
+- The 500 nM binder threshold is conventional but arbitrary.
 
 ## References
 

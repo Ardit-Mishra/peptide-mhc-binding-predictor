@@ -28,6 +28,7 @@ import { api } from "@/lib/api";
 import { loadAlleleList } from "@/lib/pmhc-model";
 import { MODEL_KEYS, type PredictResponse } from "@shared/schema";
 import { PMHC_MODEL_CARD } from "@shared/pmhc-predictor";
+import { Split, Calibration, Mutation } from "@/components/icons";
 
 const AA = "ACDEFGHIKLMNPQRSTVWY";
 const AA_RE = new RegExp(`^[${AA}]+$`);
@@ -292,7 +293,153 @@ export default function Home() {
         </dl>
         <p className="mt-4 text-sm text-muted-foreground">
           Scoring many pairs? <Link href="/batch" className="text-primary underline underline-offset-4">Batch prediction</Link> takes
-          a peptide and allele per row.
+          a peptide and allele per row. Want to see how the model treats a single substitution?{" "}
+          <Link href="/mutation-scan" className="text-primary underline underline-offset-4">Mutation scan</Link>{" "}
+          plots every possible substitution as a heatmap.
+        </p>
+      </section>
+
+      {/* -------------------------------------------------- the evaluation */}
+      <section className="mt-12" aria-labelledby="eval-heading">
+        <h2 id="eval-heading" className="instrument-label mb-3">What this model can and can't do</h2>
+
+        {/* Split ladder: same data, four difficulties, same held-out metric.
+            The point of this table is that 0.9185 is not one fixed truth —
+            it is a function of how hard the split is. */}
+        <div className="rounded-md border border-border bg-card p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Split size={15} className="text-[var(--ds-accent)]" aria-hidden="true" />
+            <h3 className="instrument-label">Split difficulty ladder</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="instrument-label border-b border-border text-[10px]">
+                  <th className="pb-2 pr-4 font-normal">Split</th>
+                  <th className="pb-2 pr-4 font-normal">ROC-AUC</th>
+                  <th className="pb-2 font-normal">PR-AUC</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {[
+                  { l: PMHC_MODEL_CARD.splitLadder.randomSplit.label, r: PMHC_MODEL_CARD.splitLadder.randomSplit.rocAuc, p: PMHC_MODEL_CARD.splitLadder.randomSplit.prAuc, hi: false },
+                  { l: PMHC_MODEL_CARD.splitLadder.peptideGrouped.label, r: PMHC_MODEL_CARD.splitLadder.peptideGrouped.rocAuc, p: PMHC_MODEL_CARD.splitLadder.peptideGrouped.prAuc, hi: true },
+                  { l: PMHC_MODEL_CARD.splitLadder.sequenceCluster.label, r: PMHC_MODEL_CARD.splitLadder.sequenceCluster.rocAuc, p: PMHC_MODEL_CARD.splitLadder.sequenceCluster.prAuc, hi: false },
+                  { l: PMHC_MODEL_CARD.splitLadder.alleleHeldOut.label, r: PMHC_MODEL_CARD.splitLadder.alleleHeldOut.rocAuc, p: PMHC_MODEL_CARD.splitLadder.alleleHeldOut.prAuc, hi: false },
+                ].map((row) => (
+                  <tr key={row.l} className={row.hi ? "text-foreground" : "text-muted-foreground"}>
+                    <td className="py-1.5 pr-4">
+                      {row.l}
+                      {row.hi && <span className="instrument-label ml-2 text-[9px] text-[var(--ds-accent-ink)]">← same split as production (see note)</span>}
+                    </td>
+                    <td className="py-1.5 pr-4 font-mono tabular">{row.r.toFixed(4)}</td>
+                    <td className="py-1.5 font-mono tabular">{row.p.toFixed(4)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            The random split leaks (the same peptide can appear in train and test) and reads highest; the
+            allele-held-out row is the honest floor. This app's deployed model itself scores{" "}
+            <span className="font-mono tabular text-foreground">{PMHC_MODEL_CARD.rocAuc.toFixed(4)}</span> on its
+            own peptide-grouped test set — the table's peptide-grouped row ({PMHC_MODEL_CARD.splitLadder.peptideGrouped.rocAuc.toFixed(4)})
+            is a later re-run of the identical pipeline (same code, same seed) used to produce the rows below it;
+            the ~0.0003 gap between the two is library-version drift (xgboost/sklearn/numpy), not a different model.
+          </p>
+        </div>
+
+        {/* LOAO by locus — the caveat lives right next to the number. */}
+        <div className="mt-4 rounded-md border border-border bg-card p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Split size={15} className="text-[var(--ds-accent)]" aria-hidden="true" />
+            <h3 className="instrument-label">Generalization to an unseen allele (leave-one-allele-out)</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="instrument-label border-b border-border text-[10px]">
+                  <th className="pb-2 pr-4 font-normal">Locus</th>
+                  <th className="pb-2 pr-4 font-normal">Alleles held out (n)</th>
+                  <th className="pb-2 font-normal">Macro ROC-AUC</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                <tr className="text-foreground">
+                  <td className="py-1.5 pr-4">All 14, overall</td>
+                  <td className="py-1.5 pr-4 font-mono tabular">{PMHC_MODEL_CARD.loao.nAlleles}</td>
+                  <td className="py-1.5 font-mono tabular">{PMHC_MODEL_CARD.loao.macroRocAuc.toFixed(4)}</td>
+                </tr>
+                <tr className="text-muted-foreground">
+                  <td className="py-1.5 pr-4">HLA-A</td>
+                  <td className="py-1.5 pr-4 font-mono tabular">{PMHC_MODEL_CARD.loao.byLocus.A.nAlleles}</td>
+                  <td className="py-1.5 font-mono tabular">{PMHC_MODEL_CARD.loao.byLocus.A.macroRocAuc.toFixed(4)}</td>
+                </tr>
+                <tr className="text-muted-foreground">
+                  <td className="py-1.5 pr-4">HLA-B</td>
+                  <td className="py-1.5 pr-4 font-mono tabular">{PMHC_MODEL_CARD.loao.byLocus.B.nAlleles}</td>
+                  <td className="py-1.5 font-mono tabular">{PMHC_MODEL_CARD.loao.byLocus.B.macroRocAuc.toFixed(4)}</td>
+                </tr>
+                <tr className="text-muted-foreground">
+                  <td className="py-1.5 pr-4">HLA-C</td>
+                  <td className="py-1.5 pr-4 font-mono tabular">{PMHC_MODEL_CARD.loao.byLocus.C.nAlleles}</td>
+                  <td className="py-1.5 font-mono tabular">{PMHC_MODEL_CARD.loao.byLocus.C.macroRocAuc.toFixed(4)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="caveat mt-3">
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-foreground">This is an approximation, not exhaustive</strong> — 14 of the
+              129 trained alleles, chosen to span HLA-A/B/C and a range of prevalence, each held out of training
+              entirely and scored as if never seen. HLA-C is both the least-represented locus in training and the
+              worst-generalizing here (one held-out allele's PR-AUC as low as 0.181 on 27 positives out of 526 rows).
+              Distance to the nearest trained allele's pseudo-sequence correlates with the drop
+              (Pearson r = {PMHC_MODEL_CARD.loao.distanceCorrelation.pearsonR.toFixed(3)}): treat a prediction on an
+              allele far from anything trained on with more suspicion than these averages suggest.
+            </p>
+          </div>
+        </div>
+
+        {/* Calibration */}
+        <div className="mt-4 rounded-md border border-border bg-card p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Calibration size={15} className="text-[var(--ds-accent)]" aria-hidden="true" />
+            <h3 className="instrument-label">Calibration — is the probability trustworthy as a probability?</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="instrument-label border-b border-border text-[10px]">
+                  <th className="pb-2 pr-4 font-normal">Output</th>
+                  <th className="pb-2 pr-4 font-normal">Brier score</th>
+                  <th className="pb-2 font-normal">ECE (10-bin)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                <tr className="text-foreground">
+                  <td className="py-1.5 pr-4">Raw sigmoid (what this app shows)</td>
+                  <td className="py-1.5 pr-4 font-mono tabular">{PMHC_MODEL_CARD.calibration.raw.brier.toFixed(4)}</td>
+                  <td className="py-1.5 font-mono tabular">{PMHC_MODEL_CARD.calibration.raw.ece10bin.toFixed(4)}</td>
+                </tr>
+                <tr className="text-muted-foreground">
+                  <td className="py-1.5 pr-4">Platt-scaled (offline analysis only, not served)</td>
+                  <td className="py-1.5 pr-4 font-mono tabular">{PMHC_MODEL_CARD.calibration.platt.brier.toFixed(4)}</td>
+                  <td className="py-1.5 font-mono tabular">{PMHC_MODEL_CARD.calibration.platt.ece10bin.toFixed(4)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-xs text-muted-foreground">
+            {PMHC_MODEL_CARD.calibration.note}
+          </p>
+        </div>
+
+        <p className="mt-4 text-sm text-muted-foreground">
+          Want to see how sensitive a specific prediction is to individual residues?{" "}
+          <Link href="/mutation-scan" className="inline-flex items-center gap-1 text-primary underline underline-offset-4">
+            <Mutation size={13} aria-hidden="true" /> Run a mutation scan
+          </Link>.
         </p>
       </section>
     </div>

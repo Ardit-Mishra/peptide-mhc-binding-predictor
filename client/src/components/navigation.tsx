@@ -4,6 +4,7 @@ import { Dna, Home, Upload, BarChart3, Target, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Mutation } from "@/components/icons";
 
 // Only routes backed by the real in-browser model appear here. Pages that
 // rendered hardcoded "results" (mock motifs, invented mutation impacts,
@@ -15,6 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 const navigationItems = [
   { name: "Predict", path: "/", icon: Target },
   { name: "Batch", path: "/batch", icon: Upload },
+  { name: "Mutation scan", path: "/mutation-scan", icon: Mutation },
   { name: "Benchmarks", path: "/visualize", icon: BarChart3 },
 ];
 

@@ -7,6 +7,7 @@ import Navigation from "@/components/navigation";
 import Home from "@/pages/home";
 import BatchProcessing from "@/pages/batch";
 import Visualization from "@/pages/visualize";
+import MutationScan from "@/pages/mutation-scan";
 import NotFound from "@/pages/not-found";
 
 /**
@@ -47,6 +48,7 @@ function Router() {
               <Route path="/" component={Home} />
               <Route path="/predict" component={Home} />
               <Route path="/batch" component={BatchProcessing} />
+              <Route path="/mutation-scan" component={MutationScan} />
               <Route path="/visualize" component={Visualization} />
               <Route component={NotFound} />
             </Switch>

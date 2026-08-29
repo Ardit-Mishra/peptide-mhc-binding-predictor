@@ -1,0 +1,62 @@
+name: CI
+
+# Every check here runs against files actually inside THIS repo. The one
+# check this project has that reaches outside it -- Python/TypeScript parity
+# against the original XGBoost model in the separate `ml-training` repo
+# (scripts/verify_parity.py) -- is NOT run here, on purpose: `ml-training` is
+# its own repo (see the project's standing context) and is not checked out
+# alongside this one on a GitHub-hosted runner. That half stays a required
+# local step before shipping a new model export; see CONTRIBUTING.md /
+# BENCHMARKS.md for the exact command. What CI CAN verify on its own --
+# scripts/verify-parity.mjs, which only reads the shipped JSON assets in
+# client/public/models/ -- runs below and is a hard gate.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch: {}
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (tsc)
+        run: npx tsc --noEmit
+
+      - name: Unit + encoder + schema + biological-sanity + model-card tests
+        # Node 24 strips TS types natively (no ts-node/tsx dependency), so
+        # these import shared/*.ts directly -- the app's real validation and
+        # inference code, not a copy of it. See scripts/tests/README.md.
+        run: node --test scripts/tests/*.test.mjs
+
+      - name: Browser/Python parity (JS half -- self-contained in this repo)
+        # Scores 516 peptide/allele pairs with the SAME code path the app
+        # ships and writes scripts/out/parity-js.json. The Python half that
+        # compares these against the original XGBoost model lives in
+        # ml-training (a separate repo, not checked out here) and is a
+        # required manual step before any new model export -- see the note
+        # at the top of this file.
+        run: node scripts/verify-parity.mjs
+
+      - name: Frontend build
+        run: npm run build
+
+      - name: Verify build output contains the model assets
+        # Regression guard for the exact bug in docs/CHANGE-RECORD-2026-08-26.md
+        # section 6.1/6.2: a stray .gitignore rule or a wrong publicDir silently
+        # drops the model from the production build with no build-time error.
+        run: |
+          test -f dist/public/models/pmhc_model.json
+          test -f dist/public/models/pmhc_alleles.json
