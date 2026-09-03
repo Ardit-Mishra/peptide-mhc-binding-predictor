@@ -150,3 +150,6 @@ vite.config.ts.*
 *.tar.gz
 scripts/out/
 .vercel
+
+# Local editor/agent config — not part of the project
+.claude/
