@@ -1,0 +1,7 @@
+
+# Training-metrics fixtures are byte-for-byte copies of ml-training artifacts,
+# and their sha256 is asserted against MANIFEST.json. Git's CRLF normalisation
+# silently rewrote them on commit (1681 B on disk -> 1618 B in the blob), so the
+# hashes held on Windows and failed on a Linux runner. Store them verbatim.
+scripts/fixtures/training-metrics/** -text
+scripts/fixtures/python-reference.json -text
