@@ -186,13 +186,20 @@ difference. The check fails the build if any difference exceeds 1e-06.
 
 ## Reproducing the model
 
-Training code lives in `ml-training/peptide-mhc/` (outside this repo):
+Training code lives in `ml-training/peptide-mhc/` (outside this repo), with a
+[dataset card](../ml-training/peptide-mhc/docs/DATASET-CARD.md) and a
+[model card](../ml-training/peptide-mhc/docs/MODEL-CARD.md).
 
 ```bash
-uv run --with xgboost --with pandas --with "numpy<2" --with scikit-learn \
-  python train_baseline.py          # downloads MHCflurry data, trains, evaluates
+docker build -t pmhc-train .
+docker run --rm -v "$(cd .. && pwd):/ml" -w /ml/peptide-mhc pmhc-train
 python export_for_browser.py        # emits the compact JSON the app ships
 ```
+
+The command previously documented here omitted `--python 3.12` and the three
+MLflow dependencies `train_baseline.py` requires, so it failed before training
+started. The pinned environment now lives in that repo's `requirements-lock.txt`
+and `Dockerfile`; the `uv` equivalent is in its README.
 
 ## Citation
 

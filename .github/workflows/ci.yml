@@ -35,7 +35,7 @@ jobs:
       - name: Typecheck (tsc)
         run: npx tsc --noEmit
 
-      - name: Unit + encoder + schema + biological-sanity + model-card tests
+      - name: Tests (encoder, schema, biological sanity, model card, export format, runtime boundaries)
         # Node 24 strips TS types natively (no ts-node/tsx dependency), so
         # these import shared/*.ts directly -- the app's real validation and
         # inference code, not a copy of it. See scripts/tests/README.md.

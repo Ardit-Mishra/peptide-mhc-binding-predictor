@@ -15,14 +15,25 @@ backend, no database, and no server to wake up.
 
 ## What it does
 
-Given a peptide (8-11 residues) and an HLA allele, the app returns a calibrated
-probability that the pair binds with IC50 < 500 nM, plus how many training
+Given a peptide (8-11 residues) and an HLA allele, the app returns the model's
+score that the pair binds with IC50 < 500 nM, plus how many training
 measurements back that particular allele.
 
-The allele is encoded as its **34-residue pseudo-sequence** — the binding-groove
-residues that actually contact the peptide, the representation NetMHCpan
-introduced. This makes the model genuinely allele-conditioned. The clearest
-evidence is a control: the influenza epitope `GILGFVFTL` scores **0.906** on
+That score is the model's **raw, uncalibrated** sigmoid output. It ranks well
+(ROC-AUC 0.919) but is systematically under-confident as a probability
+(10-bin ECE 0.093). Platt scaling on held-out validation data would cut that to
+0.008 at no cost in ROC-AUC, and is deliberately **not** applied in production —
+see [Calibration](BENCHMARKS.md#calibration). Read it as a ranking score, not as a
+probability you can act on.
+
+The allele is encoded as its **39-residue pseudo-sequence** — binding-groove
+residues that contact the peptide, following the idea NetMHCpan introduced.
+(NetMHCpan's own pseudo-sequence is 34 residues; the MHCflurry
+`allele_sequences` release used here ships 39, and 39 is what the model was
+trained and shipped with: 39 x 20 = 780 of the 1,000 input features.)
+
+This makes the model genuinely allele-conditioned. The clearest evidence is a
+control: the influenza epitope `GILGFVFTL` scores **0.906** on
 HLA-A\*02:01, its real restricting allele, and **0.194** on HLA-B\*07:02.
 
 ## Model
@@ -91,8 +102,8 @@ an independent minimal traversal and reproduces the shipped predictor exactly
 self-describing enough to score from without the app's code.
 
 **Runtime boundaries.** `scripts/tests/runtime-boundaries.test.mjs` covers refusal:
-an allele absent from training has no pseudo-sequence, so its 34 allele features
-encode as all-zero and the model would still return a confident-looking number
+an allele absent from training has no pseudo-sequence, so all 780 of its allele
+features encode as all-zero and the model would still return a confident-looking number
 from the peptide alone. The predictor flags it and the caller refuses, rather than
 serving a prediction about a blank.
 

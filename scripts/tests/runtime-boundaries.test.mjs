@@ -6,7 +6,8 @@
  * should refuse.
  *
  * The refusal matters more than it looks. An allele absent from training has no
- * pseudo-sequence, so its 34 allele features encode as all-zero -- and the model
+ * pseudo-sequence, so all 780 of its allele features (39 residues x 20) encode as
+ * all-zero -- and the model
  * will still return a confident-looking probability from the peptide features
  * alone. That number is not a prediction about that allele; it is a prediction
  * about a peptide against a blank. Returning it would be the most plausible-

@@ -194,8 +194,9 @@ export const PMHC_MODEL_CARD = {
   testRows: 23866,
   testPositiveRate: 0.2782,
   note:
-    "Runs entirely in your browser. Predictions are bit-identical to the Python " +
-    "model because the one-hot encoding is exact integer arithmetic.",
+    "Runs entirely in your browser. Predictions match the Python model to " +
+    "7.5e-08 (max over 516 measured pairs) -- float32 accumulation order, not a " +
+    "logic difference. Measured by scripts/verify-parity.mjs, not assumed.",
 
   /**
    * PROVENANCE: rocAuc/prAuc above are read directly from

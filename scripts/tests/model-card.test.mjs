@@ -144,3 +144,32 @@ test(
     );
   },
 );
+
+/**
+ * The README states the pseudo-sequence length in prose, twice. It said 34 --
+ * NetMHCpan's canonical length, and a plausible number to write from memory --
+ * while the MHCflurry release this model actually trained on ships 39. Nothing
+ * caught it because no test read the prose. Every other doc claim in this file
+ * is checked against the artifact; this one now is too.
+ */
+test("README's pseudo-sequence length matches the shipped allele table", () => {
+  const readme = readFileSync(join(root, "README.md"), "utf8");
+  const L = alleles.alleleLength;
+  const alleleFeatures = L * alleles.alphabet.length;
+
+  const lengths = new Set(Object.values(alleles.pseudoSequences).map((s) => s.length));
+  assert.deepEqual([...lengths], [L], `pseudoSequences are not all ${L} residues`);
+
+  assert.ok(
+    readme.includes(`**${L}-residue pseudo-sequence**`),
+    `README must say "${L}-residue pseudo-sequence" to match pmhc_alleles.json`,
+  );
+  assert.ok(
+    readme.includes(`${alleleFeatures} of the 1,000 input features`),
+    `README must state the ${alleleFeatures} allele features the encoding actually uses`,
+  );
+  assert.ok(
+    readme.includes(`all ${alleleFeatures} of its allele`),
+    `README's unknown-allele passage must cite ${alleleFeatures}, not a remembered number`,
+  );
+});
