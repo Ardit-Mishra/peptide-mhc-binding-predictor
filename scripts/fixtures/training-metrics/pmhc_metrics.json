@@ -1,0 +1,64 @@
+{
+  "task": "peptide-MHC-I binding (IC50<500nM)",
+  "n": 120000,
+  "alleles": 129,
+  "features": 1000,
+  "encoding": "onehot peptide(11) + onehot allele pseudo-seq",
+  "split": "peptide-grouped 80/20",
+  "test_roc_auc": 0.9187523809226529,
+  "test_pr_auc": 0.8085075485074859,
+  "test_brier": 0.11188231408596039,
+  "test_ece_10bin": 0.09251422479031952,
+  "loao_roc_auc": {
+    "HLA-A*02:01": {
+      "roc_auc": 0.879622529989633,
+      "pr_auc": 0.8235943268481225,
+      "n": 14387,
+      "n_pos": 6044
+    },
+    "HLA-A*03:01": {
+      "roc_auc": 0.8773999703592662,
+      "pr_auc": 0.7168367462236729,
+      "n": 5640,
+      "n_pos": 1701
+    },
+    "HLA-A*11:01": {
+      "roc_auc": 0.8865227640560129,
+      "pr_auc": 0.8066641897433628,
+      "n": 5012,
+      "n_pos": 1854
+    },
+    "HLA-A*02:03": {
+      "roc_auc": 0.9069585847286277,
+      "pr_auc": 0.8486045234365852,
+      "n": 5008,
+      "n_pos": 1932
+    },
+    "HLA-A*02:06": {
+      "roc_auc": 0.8667790526462905,
+      "pr_auc": 0.7837705317518334,
+      "n": 4572,
+      "n_pos": 1769
+    },
+    "HLA-A*68:02": {
+      "roc_auc": 0.8375132270236259,
+      "pr_auc": 0.6341387736336138,
+      "n": 4547,
+      "n_pos": 1051
+    }
+  },
+  "git_sha": "4e6027e872b2-dirty",
+  "library_versions": {
+    "python": "3.12.10",
+    "xgboost": "3.4.1",
+    "scikit-learn": "1.9.0",
+    "numpy": "1.26.4",
+    "pandas": "3.0.5",
+    "mlflow": "3.15.2"
+  },
+  "dataset_fingerprint_sha256_16": "784dc4c9769d4c0e",
+  "train_time_s": 87.44,
+  "inference_ms_per_row": 0.0079,
+  "model_size_bytes": 7940689,
+  "mlflow_run_id": "d4195d6144574c1cb34482a24b44e528"
+}

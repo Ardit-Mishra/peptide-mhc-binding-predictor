@@ -1,0 +1,20 @@
+{
+ "_comment": "Verbatim copies of ml-training/peptide-mhc metrics artifacts. Do not hand-edit. Regenerate by copying the source files again; scripts/tests/model-card.test.mjs fails if a copy drifts from its source when ml-training is checked out alongside this repo.",
+ "source": "ml-training/peptide-mhc (separate, unpublished repository)",
+ "capturedAtUtc": "2026-09-04T10:43:50.502867+00:00",
+ "mlflowRun": "d4195d6144574c1cb34482a24b44e528",
+ "files": {
+  "pmhc_metrics.json": {
+   "sha256": "726c6a7b87404507388c3ff6fb053d64ab66d605c3183cf7eb5179e04e45f17e",
+   "bytes": 1681
+  },
+  "pmhc_metrics_calibration.json": {
+   "sha256": "75103e637d5d9372694d6b8614eac8eb229cc24a3096fde27220e3a44c8aab47",
+   "bytes": 7611
+  },
+  "pmhc_metrics_loao_distance.json": {
+   "sha256": "f612f310d7026dbc5ed5a1465fd2990932310e051507d4859989aa8f98c194be",
+   "bytes": 9257
+  }
+ }
+}

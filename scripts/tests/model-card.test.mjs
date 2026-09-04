@@ -10,6 +10,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -85,63 +86,97 @@ test("model card: BENCHMARKS.md quotes the same raw-calibration ECE the code sho
   );
 });
 
-// The training project (ml-training/) is its own separate repo (see the
-// top-level standing context) and is not checked out alongside this one in
-// CI, so this cross-repo re-derivation only runs when it happens to be
-// present on disk (e.g. a local dev checkout) rather than failing CI outright.
+// The metrics that back this card are produced in ml-training/, a separate and
+// unpublished repository that CI does not check out. These three checks used to
+// SKIP on CI for that reason -- which meant the LOAO, ROC-AUC/PR-AUC and
+// calibration figures the app displays were only ever verified on one laptop.
+//
+// The three source artifacts are now committed here verbatim under
+// scripts/fixtures/training-metrics/, so the checks run everywhere. Verbatim,
+// not summarised: a distilled copy would be a second place for a number to
+// live, which is precisely the drift this file exists to catch.
+//
+// A fixture that can silently go stale is worse than a skip, so the last test
+// below re-reads the real ml-training files when they ARE present and fails if
+// the committed copies have drifted from them.
+const fixtures = join(root, "scripts", "fixtures", "training-metrics");
+const readFixture = (name) => JSON.parse(readFileSync(join(fixtures, name), "utf8"));
+
 const trainingRepo = join(root, "..", "ml-training", "peptide-mhc");
 const haveTrainingRepo = existsSync(trainingRepo);
 
-test(
-  "model card: PMHC_MODEL_CARD.loao matches ml-training's pmhc_metrics_loao_distance.json (local checkout only)",
-  { skip: !haveTrainingRepo && "ml-training is a separate repo, not present in this checkout" },
-  () => {
-    const src = JSON.parse(
-      readFileSync(join(trainingRepo, "pmhc_metrics_loao_distance.json"), "utf8"),
+test("model card: PMHC_MODEL_CARD.loao matches the LOAO study artifact", () => {
+  const agg = readFixture("pmhc_metrics_loao_distance.json").aggregate_overall;
+  assert.ok(Math.abs(PMHC_MODEL_CARD.loao.macroRocAuc - agg.macro_roc_auc) < 5e-4);
+  assert.ok(Math.abs(PMHC_MODEL_CARD.loao.nWeightedRocAuc - agg.n_weighted_roc_auc) < 5e-4);
+  assert.equal(PMHC_MODEL_CARD.loao.nAlleles, agg.n_alleles);
+});
+
+test("model card: PMHC_MODEL_CARD.rocAuc/prAuc match the training metrics artifact", () => {
+  // The exact drift a past review caught: rocAuc/prAuc's own comment named
+  // pmhc_metrics.json as their source, but nothing ever opened that file and
+  // compared it -- so a stale hardcoded number was invisible. Open it, for real.
+  const src = readFixture("pmhc_metrics.json");
+  assert.equal(
+    PMHC_MODEL_CARD.rocAuc.toFixed(4),
+    src.test_roc_auc.toFixed(4),
+    `PMHC_MODEL_CARD.rocAuc (${PMHC_MODEL_CARD.rocAuc}) does not match ` +
+      `pmhc_metrics.json's test_roc_auc (${src.test_roc_auc})`,
+  );
+  assert.equal(
+    PMHC_MODEL_CARD.prAuc.toFixed(4),
+    src.test_pr_auc.toFixed(4),
+    `PMHC_MODEL_CARD.prAuc (${PMHC_MODEL_CARD.prAuc}) does not match ` +
+      `pmhc_metrics.json's test_pr_auc (${src.test_pr_auc})`,
+  );
+});
+
+test("model card: PMHC_MODEL_CARD.calibration matches the calibration study artifact", () => {
+  const src = readFixture("pmhc_metrics_calibration.json");
+  assert.ok(Math.abs(PMHC_MODEL_CARD.calibration.raw.brier - src.raw.brier_score) < 5e-4);
+  assert.ok(Math.abs(PMHC_MODEL_CARD.calibration.raw.ece10bin - src.raw.ece_10bin) < 5e-4);
+  assert.ok(
+    Math.abs(PMHC_MODEL_CARD.calibration.platt.brier - src.platt_fit_on_validation.brier_score) < 5e-4,
+  );
+});
+
+test("fixture manifest records what was captured", () => {
+  const manifest = readFixture("MANIFEST.json");
+  const names = Object.keys(manifest.files).sort();
+  assert.deepEqual(names, [
+    "pmhc_metrics.json",
+    "pmhc_metrics_calibration.json",
+    "pmhc_metrics_loao_distance.json",
+  ]);
+  for (const [name, meta] of Object.entries(manifest.files)) {
+    const actual = readFileSync(join(fixtures, name));
+    assert.equal(actual.length, meta.bytes, `${name}: size differs from the manifest`);
+    assert.equal(
+      createHash("sha256").update(actual).digest("hex"),
+      meta.sha256,
+      `${name}: content differs from the sha256 recorded when it was captured`,
     );
-    const agg = src.aggregate_overall;
-    assert.ok(Math.abs(PMHC_MODEL_CARD.loao.macroRocAuc - agg.macro_roc_auc) < 5e-4);
-    assert.ok(Math.abs(PMHC_MODEL_CARD.loao.nWeightedRocAuc - agg.n_weighted_roc_auc) < 5e-4);
-    assert.equal(PMHC_MODEL_CARD.loao.nAlleles, agg.n_alleles);
-  },
-);
+  }
+});
 
 test(
-  "model card: PMHC_MODEL_CARD.rocAuc/prAuc match ml-training's pmhc_metrics.json (local checkout only)",
+  "committed fixtures still match the live ml-training artifacts (local checkout only)",
   { skip: !haveTrainingRepo && "ml-training is a separate repo, not present in this checkout" },
   () => {
-    // This is the exact drift a past review caught: rocAuc/prAuc's own code
-    // comment named pmhc_metrics.json as their source, but nothing ever
-    // opened that file and compared it -- so a stale hardcoded number was
-    // invisible to CI. Open it and compare, for real, every run.
-    const src = JSON.parse(readFileSync(join(trainingRepo, "pmhc_metrics.json"), "utf8"));
-    assert.equal(
-      PMHC_MODEL_CARD.rocAuc.toFixed(4),
-      src.test_roc_auc.toFixed(4),
-      `PMHC_MODEL_CARD.rocAuc (${PMHC_MODEL_CARD.rocAuc}) does not match ` +
-        `pmhc_metrics.json's test_roc_auc (${src.test_roc_auc})`,
-    );
-    assert.equal(
-      PMHC_MODEL_CARD.prAuc.toFixed(4),
-      src.test_pr_auc.toFixed(4),
-      `PMHC_MODEL_CARD.prAuc (${PMHC_MODEL_CARD.prAuc}) does not match ` +
-        `pmhc_metrics.json's test_pr_auc (${src.test_pr_auc})`,
-    );
-  },
-);
-
-test(
-  "model card: PMHC_MODEL_CARD.calibration matches ml-training's pmhc_metrics_calibration.json (local checkout only)",
-  { skip: !haveTrainingRepo && "ml-training is a separate repo, not present in this checkout" },
-  () => {
-    const src = JSON.parse(
-      readFileSync(join(trainingRepo, "pmhc_metrics_calibration.json"), "utf8"),
-    );
-    assert.ok(Math.abs(PMHC_MODEL_CARD.calibration.raw.brier - src.raw.brier_score) < 5e-4);
-    assert.ok(Math.abs(PMHC_MODEL_CARD.calibration.raw.ece10bin - src.raw.ece_10bin) < 5e-4);
-    assert.ok(
-      Math.abs(PMHC_MODEL_CARD.calibration.platt.brier - src.platt_fit_on_validation.brier_score) < 5e-4,
-    );
+    // The one check that cannot run in CI, and the reason the others now can.
+    // If a training re-run changes a metric, this fails locally and the fixture
+    // must be recaptured -- otherwise CI would keep happily verifying the card
+    // against a snapshot of a model that no longer exists.
+    for (const name of Object.keys(readFixture("MANIFEST.json").files)) {
+      const committed = readFileSync(join(fixtures, name));
+      const live = readFileSync(join(trainingRepo, name));
+      assert.equal(
+        createHash("sha256").update(committed).digest("hex"),
+        createHash("sha256").update(live).digest("hex"),
+        `${name} in scripts/fixtures/training-metrics/ has drifted from ` +
+          `ml-training/peptide-mhc/${name}. Recapture the fixture.`,
+      );
+    }
   },
 );
 
