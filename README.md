@@ -65,16 +65,19 @@ locally in TypeScript (`shared/pmhc-predictor.ts`). No ML runtime is loaded in t
 browser — no XGBoost build, no ONNX, no WASM — just a traversal of the exported
 trees. Predictions happen on your machine.
 
-Three separate checks, because they prove different things:
+Four separate checks, because they prove different things:
 
 ```bash
-# 1. Runtime parity: the shipped predictor against the original Python model
+# 1. Runtime parity against a live booster — needs the training repo checked out
 node --experimental-strip-types scripts/verify-parity.mjs
 uv run --with xgboost --with "numpy<2" python scripts/verify_parity.py
 
-# 2. Export format, and 3. runtime boundaries (40 tests)
+# 2. Python reference fixture, 3. export format, 4. runtime boundaries (44 tests)
 node --experimental-strip-types --test "scripts/tests/*.test.mjs"
 ```
+
+Only the first needs Python or the training repository. Everything else runs in
+CI on every push.
 
 **Runtime parity.** 516 peptide/allele pairs across all 129 alleles, lengths 8–11,
 scored by `PeptideMHCPredictor` — the class the app actually ships — and compared
@@ -95,6 +98,20 @@ importing the shipped class, so the figure measured agreement between Python and
 the *harness*. The number is unchanged — the shipped path was in fact correct —
 but it is now measured rather than assumed. The standalone traversal survives as
 an export-format test, which is what it always was.
+
+**Python reference fixture.** The check above is authoritative but can only run
+where the training repository is checked out — which CI is not. So the booster's
+own outputs for all 516 pairs are recorded in
+`scripts/fixtures/python-reference.json`, and
+`scripts/tests/python-reference.test.mjs` replays them against the shipped
+predictor on every push, reaching the same **7.481e-08 / 1.097e-08** with no
+Python and no training repo.
+
+A recorded expectation is only worth something if it fails when the thing it
+describes changes. The fixture stores the sha256 of both `pmhc_model.json` and
+`pmhc_alleles.json`, and the test errors out if either has moved — re-exporting
+the model without regenerating the fixture is a hard failure, not a quiet pass
+against a model that no longer exists.
 
 **Export format.** `scripts/tests/export-format.test.mjs` reads the artifact with
 an independent minimal traversal and reproduces the shipped predictor exactly

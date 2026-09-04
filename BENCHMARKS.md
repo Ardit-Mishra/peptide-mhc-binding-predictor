@@ -186,9 +186,17 @@ difference. The check fails the build if any difference exceeds 1e-06.
 
 ## Reproducing the model
 
-Training code lives in `ml-training/peptide-mhc/` (outside this repo), with a
-[dataset card](../ml-training/peptide-mhc/docs/DATASET-CARD.md) and a
-[model card](../ml-training/peptide-mhc/docs/MODEL-CARD.md).
+Training code lives in `ml-training/peptide-mhc/`, a sibling repository that is
+not published. It carries a dataset card and a model card at
+`docs/DATASET-CARD.md` and `docs/MODEL-CARD.md`, covering the data provenance
+and filters, the split ladder, leave-one-allele-out, calibration, and the
+architectures that were evaluated and lost.
+
+These are deliberately not links: that repository has no remote, so a relative
+link would resolve to nothing on GitHub. The headline numbers quoted in this
+file are checked against its artifacts by `scripts/tests/model-card.test.mjs`
+whenever it is checked out alongside this one, and skipped with a stated reason
+when it is not.
 
 ```bash
 docker build -t pmhc-train .
