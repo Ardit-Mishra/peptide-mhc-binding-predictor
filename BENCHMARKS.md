@@ -198,16 +198,16 @@ file are checked against its artifacts by `scripts/tests/model-card.test.mjs`
 whenever it is checked out alongside this one, and skipped with a stated reason
 when it is not.
 
-```bash
-docker build -t pmhc-train .
-docker run --rm -v "$(cd .. && pwd):/ml" -w /ml/peptide-mhc pmhc-train
-python export_for_browser.py        # emits the compact JSON the app ships
-```
+The exact commands — bash and PowerShell, Docker and `uv` — are in that repo's
+`README.md`, kept in one place so they cannot drift apart. Its pinned
+environment is a fully resolved 57-package `requirements-lock.txt`, verified to
+install at Python 3.12. **Its Docker image has not yet been built**, so treat
+the containerised path as unverified; the `uv` path has been used. Export the
+browser artifact afterwards with `python export_for_browser.py`.
 
 The command previously documented here omitted `--python 3.12` and the three
 MLflow dependencies `train_baseline.py` requires, so it failed before training
-started. The pinned environment now lives in that repo's `requirements-lock.txt`
-and `Dockerfile`; the `uv` equivalent is in its README.
+started.
 
 ## Citation
 
