@@ -255,8 +255,10 @@ export default function Home() {
               </div>
               <div>
                 <dt className="instrument-label">Model</dt>
-                <dd className="mt-1 font-mono text-sm">XGBoost</dd>
-                <dd className="text-xs text-muted-foreground">+ pseudo-sequence</dd>
+                <dd className="mt-1 font-mono text-sm">XGBoost-trained</dd>
+                {/* "XGBoost" alone read as though XGBoost were running here. It is
+                    not: the trees are exported and traversed in TypeScript. */}
+                <dd className="text-xs text-muted-foreground">exported trees, run in TS</dd>
               </div>
             </dl>
           </div>

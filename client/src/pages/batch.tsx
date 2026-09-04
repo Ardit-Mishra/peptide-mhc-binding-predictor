@@ -82,7 +82,7 @@ export default function BatchProcessing() {
     {
       key: 'xgb_pseudoseq',
       name: 'XGBoost + allele pseudo-sequence',
-      description: 'Held-out ROC-AUC 0.919 — runs in your browser',
+      description: 'Held-out ROC-AUC 0.919 — exported trees, scored locally in TypeScript',
     },
   ];
 

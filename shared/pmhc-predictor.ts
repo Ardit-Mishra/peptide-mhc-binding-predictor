@@ -1,10 +1,16 @@
 /**
  * Peptide-MHC class I binding predictor — runs in the browser.
  *
- * This is a REAL trained model, not a heuristic: a gradient-boosted tree
- * ensemble (XGBoost, 800 trees) trained on MHCflurry-curated binding
+ * This is a REAL trained model, not a heuristic: an XGBoost-trained
+ * gradient-boosted ensemble (800 trees) on MHCflurry-curated binding
  * measurements, evaluated once on a peptide-GROUPED held-out split so no
  * peptide appears in both training and test.
+ *
+ * The model was exported to a compact tree representation and is executed
+ * locally in TypeScript -- this class IS the runtime. No ML library is loaded
+ * in the browser: no XGBoost build, no ONNX, no WASM, just a traversal of the
+ * exported trees. scripts/verify-parity.mjs imports this class and holds it to
+ * the original booster's output.
  *
  *   held-out ROC-AUC 0.9188   PR-AUC 0.8085   n = 120,000   129 alleles
  *
@@ -173,7 +179,11 @@ export class PeptideMHCPredictor {
  */
 export const PMHC_MODEL_CARD = {
   task: "Peptide-MHC class I binding (IC50 < 500 nM)",
-  algorithm: "XGBoost gradient-boosted trees (800 estimators)",
+  // Rendered on the home page. Names both halves deliberately: what trained the
+  // model, and what actually executes it in the browser.
+  algorithm:
+    "XGBoost-trained gradient-boosted trees (800 estimators), exported to a compact " +
+    "tree representation and executed locally in TypeScript",
   encoding: "one-hot peptide (11 positions) + one-hot allele pseudo-sequence (39 positions)",
   trainingExamples: 120000,
   alleles: 129,
@@ -192,8 +202,9 @@ export const PMHC_MODEL_CARD = {
    * ml-training/peptide-mhc/pmhc_metrics.json (train_baseline.py's own
    * output), which is also the exact model exported to
    * client/public/models/pmhc_model.json -- verified by
-   * scripts/verify_parity.py (browser vs. Python predictions match to
-   * float32 noise, see BENCHMARKS.md "Browser/Python parity"). The
+   * scripts/verify_parity.py, which scores the same pairs THIS class produced
+   * (max 7.481e-08, mean 1.097e-08 over 516 pairs, tolerance 1e-06: float32
+   * accumulation noise, not a logic difference). The
    * loao/calibration/splitLadder numbers below are a re-run of the identical
    * pipeline (same code, hyperparameters, seed=42); its own peptide-grouped
    * rung reproduces test_roc_auc/test_pr_auc from pmhc_metrics.json to full

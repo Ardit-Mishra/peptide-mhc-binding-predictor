@@ -49,21 +49,56 @@ modern predictors lean on heavily, was excluded.
 
 ## Client-side inference
 
-The app reimplements XGBoost tree traversal in TypeScript
-(`shared/pmhc-predictor.ts`) so predictions happen on your machine. That claim is
-tested rather than asserted:
+An XGBoost-trained model, exported to a compact tree representation and executed
+locally in TypeScript (`shared/pmhc-predictor.ts`). No ML runtime is loaded in the
+browser — no XGBoost build, no ONNX, no WASM — just a traversal of the exported
+trees. Predictions happen on your machine.
+
+Three separate checks, because they prove different things:
 
 ```bash
-node scripts/verify-parity.mjs
+# 1. Runtime parity: the shipped predictor against the original Python model
+node --experimental-strip-types scripts/verify-parity.mjs
 uv run --with xgboost --with "numpy<2" python scripts/verify_parity.py
+
+# 2. Export format, and 3. runtime boundaries (40 tests)
+node --experimental-strip-types --test "scripts/tests/*.test.mjs"
 ```
 
-Across 516 peptide/allele pairs covering all 129 alleles and lengths 8-11, the
-largest disagreement with the original Python model is **7.5e-08** — float32
-rounding in the tree-sum accumulation, not a logic difference. The check fails
-above 1e-06.
+**Runtime parity.** 516 peptide/allele pairs across all 129 alleles, lengths 8–11,
+scored by `PeptideMHCPredictor` — the class the app actually ships — and compared
+against the XGBoost booster it was exported from:
 
-Inference costs **0.089 ms** per prediction. The model is a 2.6 MB JSON
+| | |
+|---|---|
+| max \|python − typescript\| | **7.481e-08** |
+| mean | **1.097e-08** |
+| tolerance (fails above) | **1e-06** |
+| worst pair | `KCMKIFMWCQT` / `HLA-A*02:19` |
+
+That residual is float32 rounding in the tree-sum accumulation, not a logic
+difference.
+
+Until 2026-09-04 the harness reimplemented the traversal itself rather than
+importing the shipped class, so the figure measured agreement between Python and
+the *harness*. The number is unchanged — the shipped path was in fact correct —
+but it is now measured rather than assumed. The standalone traversal survives as
+an export-format test, which is what it always was.
+
+**Export format.** `scripts/tests/export-format.test.mjs` reads the artifact with
+an independent minimal traversal and reproduces the shipped predictor exactly
+(max difference **0.0** over the same 516 pairs), confirming the JSON is
+self-describing enough to score from without the app's code.
+
+**Runtime boundaries.** `scripts/tests/runtime-boundaries.test.mjs` covers refusal:
+an allele absent from training has no pseudo-sequence, so its 34 allele features
+encode as all-zero and the model would still return a confident-looking number
+from the peptide alone. The predictor flags it and the caller refuses, rather than
+serving a prediction about a blank.
+
+Inference costs roughly **0.1 ms** per prediction — 0.094 and 0.125 ms on two
+consecutive runs of the same machine, so it is quoted to one figure rather than
+three. `verify-parity.mjs` prints the exact value for the run you just did. The model is a 2.6 MB JSON
 (**658 KB** gzipped) fetched on first prediction rather than at page load; the
 allele table is a further 12 KB.
 
@@ -100,11 +135,12 @@ client/
     pmhc-model.ts    lazy asset loader
     local-backend.ts in-browser request handlers
 shared/
-  pmhc-predictor.ts  XGBoost traversal + feature encoding
+  pmhc-predictor.ts  exported-tree traversal + feature encoding (the shipped runtime)
   schema.ts          Zod request/response shapes
 scripts/
-  verify-parity.mjs  browser-side scoring of fixed pairs
-  verify_parity.py   same pairs via the original Python model
+  verify-parity.mjs  scores fixed pairs via the SHIPPED PeptideMHCPredictor
+  verify_parity.py   same pairs via the original XGBoost booster
+  tests/             export-format and runtime-boundary tests
 ```
 
 Training code lives outside this repo in `ml-training/peptide-mhc/`
