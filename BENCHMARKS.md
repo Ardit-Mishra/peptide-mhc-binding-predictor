@@ -193,10 +193,21 @@ and filters, the split ladder, leave-one-allele-out, calibration, and the
 architectures that were evaluated and lost.
 
 These are deliberately not links: that repository has no remote, so a relative
-link would resolve to nothing on GitHub. The headline numbers quoted in this
-file are checked against its artifacts by `scripts/tests/model-card.test.mjs`
-whenever it is checked out alongside this one, and skipped with a stated reason
-when it is not.
+link would resolve to nothing on GitHub.
+
+The headline numbers quoted in this file are checked against those artifacts by
+`scripts/tests/model-card.test.mjs` **on every CI run**. The three artifacts it
+needs — `pmhc_metrics.json`, `pmhc_metrics_calibration.json` and
+`pmhc_metrics_loao_distance.json` — are committed verbatim under
+`scripts/fixtures/training-metrics/`, with their sha256 recorded in a manifest
+the tests re-verify. Until 2026-09-04 those three checks skipped in CI because
+they read the sibling repository directly, which meant the LOAO, ROC-AUC/PR-AUC
+and calibration figures were only ever verified on one laptop.
+
+One check still cannot run in CI, and is skipped with a stated reason: the guard
+that the committed fixtures have not drifted from the live `ml-training`
+artifacts. That one needs the real repository, and it is what stops the fixtures
+becoming a snapshot of a model that no longer exists.
 
 The exact commands — bash and PowerShell, Docker and `uv` — are in that repo's
 `README.md`, kept in one place so they cannot drift apart. Its pinned
