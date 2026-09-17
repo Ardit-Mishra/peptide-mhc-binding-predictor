@@ -173,6 +173,21 @@
     color: var(--muted-foreground);
   }
 
+  .page-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+  }
+
+  .page-subtitle {
+    margin-top: 0.25rem;
+    max-width: 62ch;
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
   /* Peptides are read residue by residue, so they get tracking and never wrap
      mid-sequence. */
   .seq {

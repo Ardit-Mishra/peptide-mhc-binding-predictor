@@ -203,8 +203,8 @@ export default function BatchProcessing() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Batch Processing</h1>
-          <p className="text-muted-foreground">Process multiple peptide sequences simultaneously</p>
+          <h1 className="page-title">Batch peptide–allele scoring</h1>
+          <p className="page-subtitle">Each output preserves the exact peptide–allele pair that was scored.</p>
         </div>
       </div>
 
@@ -214,12 +214,12 @@ export default function BatchProcessing() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Upload className="w-5 h-5" />
-              <span>Create New Batch</span>
+              <span>Define a scoring batch</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="batch-name">Batch Name</Label>
+              <Label htmlFor="batch-name">Batch label</Label>
               <Input
                 id="batch-name"
                 value={batchName}
@@ -230,7 +230,7 @@ export default function BatchProcessing() {
             </div>
 
             <div>
-              <Label htmlFor="sequences">Peptide Sequences</Label>
+              <Label htmlFor="sequences">Peptide–allele input</Label>
               <Textarea
                 id="sequences"
                 value={sequences}
@@ -255,7 +255,7 @@ export default function BatchProcessing() {
             </div>
 
             <div>
-              <Label>Allele for rows that don't specify one</Label>
+              <Label>Fallback allele for unpaired rows</Label>
               <div className="mt-2">
                 <AlleleSelect
                   value={batchAllele}
@@ -299,7 +299,7 @@ export default function BatchProcessing() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Clock className="w-5 h-5" />
-              <span>Batch Jobs</span>
+              <span>Saved batches in this browser</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -337,14 +337,14 @@ export default function BatchProcessing() {
                         />
 
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Models:</span>
+                          <span className="text-muted-foreground">Scoring model:</span>
                           <span className="text-foreground">
                             {job.models?.join(', ') || 'N/A'}
                           </span>
                         </div>
 
                         <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Created:</span>
+                          <span className="text-muted-foreground">Created locally:</span>
                           <span className="text-foreground">
                             {job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'N/A'}
                           </span>

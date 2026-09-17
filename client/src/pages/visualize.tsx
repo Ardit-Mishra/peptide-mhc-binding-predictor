@@ -45,8 +45,8 @@ export default function Visualization() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Local prediction history</h1>
-          <p className="text-muted-foreground">Charts and records saved in this browser only</p>
+          <h1 className="page-title">Local prediction records</h1>
+          <p className="page-subtitle">A private history from this browser; it is not a shared study dataset.</p>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export default function Visualization() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <BarChart3 className="w-5 h-5" />
-              <span>Held-Out Evaluation</span>
+              <span>Held-out model evaluation</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -94,7 +94,7 @@ export default function Visualization() {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5" />
-              <span>Prediction Probability Distribution</span>
+              <span>Raw score distribution</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -118,7 +118,7 @@ export default function Visualization() {
         {/* Sequence Length Analysis */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Sequence Length Distribution</CardTitle>
+          <CardTitle>Peptide lengths in saved records</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground mb-3">
@@ -142,7 +142,7 @@ export default function Visualization() {
       {/* This is deliberately the one export the static app can prove. */}
       <Card>
         <CardHeader>
-          <CardTitle>Export local records</CardTitle>
+          <CardTitle>Export these local records</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="mb-3 text-sm text-muted-foreground">

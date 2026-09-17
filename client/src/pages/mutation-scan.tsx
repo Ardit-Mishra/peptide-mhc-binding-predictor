@@ -133,18 +133,18 @@ export default function MutationScan() {
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-border py-5">
         <h1 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
           <Mutation size={16} className="text-[var(--ds-accent)]" aria-hidden="true" />
-          Mutation scan
+          Single-substitution scan
         </h1>
-        <p className="instrument-label">in-silico saturation mutagenesis · runs in your browser</p>
+        <p className="instrument-label">Every one-residue substitution · local execution</p>
       </header>
 
       {/* --------------------------------------------------------- the setup */}
       <section className="mt-8" aria-labelledby="scan-setup-heading">
-        <h2 id="scan-setup-heading" className="instrument-label mb-3">Peptide × Allele</h2>
+        <h2 id="scan-setup-heading" className="instrument-label mb-3">Select the peptide–allele pair to perturb</h2>
         <div className="rounded-md border border-border bg-card">
           <div className="grid grid-cols-1 items-stretch sm:grid-cols-[1fr_auto_1fr]">
             <div className="p-4">
-              <label htmlFor="scan-peptide" className="instrument-label">Peptide</label>
+              <label htmlFor="scan-peptide" className="instrument-label">Peptide sequence · 8–11 residues</label>
               <input
                 id="scan-peptide"
                 value={peptide}
@@ -166,7 +166,7 @@ export default function MutationScan() {
               ×
             </div>
             <div className="p-4">
-              <label className="instrument-label">MHC allele</label>
+              <label className="instrument-label">HLA class I allele</label>
               <Select value={allele} onValueChange={setAllele}>
                 <SelectTrigger className="seq mt-2 h-auto rounded-none border-0 border-b border-border bg-transparent px-0 pb-1 text-xl focus:ring-0 focus:border-primary">
                   <SelectValue>{allele}</SelectValue>
@@ -184,7 +184,7 @@ export default function MutationScan() {
           </div>
           <div className="border-t border-border p-4">
             <Button onClick={runScan} disabled={pending} className="w-full sm:w-auto">
-              {pending ? <><span className="loading-spinner mr-2" />Scanning…</> : "Run mutation scan"}
+              {pending ? <><span className="loading-spinner mr-2" />Calculating…</> : "Calculate substitution scan"}
             </Button>
           </div>
         </div>
@@ -195,7 +195,7 @@ export default function MutationScan() {
         <section className="readout-enter mt-10" aria-labelledby="heatmap-heading">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 id="heatmap-heading" className="instrument-label">
-              Substitution heatmap — {scanned.peptide} × {scanned.allele}
+              Predicted score for each single substitution · {scanned.peptide} × {scanned.allele}
             </h2>
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
               <span>0.0</span>

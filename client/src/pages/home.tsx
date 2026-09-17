@@ -97,21 +97,24 @@ export default function Home() {
     <div className="mx-auto max-w-3xl px-4 pb-24">
       {/* Identity: a hairline strip, not a card with a gradient logo tile. */}
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-border py-5">
-        <h1 className="text-[15px] font-semibold tracking-tight">Peptide–MHC binding</h1>
+        <div>
+          <h1 className="page-title">Single-pair binding estimate</h1>
+          <p className="page-subtitle">Score one peptide against one trained HLA allele.</p>
+        </div>
         <p className="instrument-label">
-          {PMHC_MODEL_CARD.alleles} HLA alleles · runs in your browser
+          {PMHC_MODEL_CARD.alleles} trained HLA alleles · local execution
         </p>
       </header>
 
       {/* ------------------------------------------------------ the specimen */}
       <section className="mt-10" aria-labelledby="pair-heading">
-        <h2 id="pair-heading" className="instrument-label mb-3">Peptide × Allele</h2>
+        <h2 id="pair-heading" className="instrument-label mb-3">Specify the peptide–allele pair</h2>
 
         <div className="rounded-md border border-border bg-card">
           <div className="grid grid-cols-1 items-stretch sm:grid-cols-[1fr_auto_1fr]">
             {/* peptide */}
             <div className="p-4">
-              <label htmlFor="peptide" className="instrument-label">Peptide</label>
+              <label htmlFor="peptide" className="instrument-label">Peptide sequence · 8–11 residues</label>
               <input
                 id="peptide"
                 value={peptide}
@@ -159,7 +162,7 @@ export default function Home() {
 
             {/* allele */}
             <div className="p-4">
-              <label className="instrument-label">MHC allele</label>
+              <label className="instrument-label">HLA class I allele</label>
               <Select value={allele} onValueChange={setAllele}>
                 <SelectTrigger
                   className="seq mt-2 h-auto rounded-none border-0 border-b border-border bg-transparent px-0 pb-1 text-2xl focus:ring-0 focus:border-primary"
@@ -180,8 +183,8 @@ export default function Home() {
               </Select>
               <p className="mt-3 text-xs text-muted-foreground">
                 {support !== null
-                  ? <><span className="font-mono text-foreground">{support.toLocaleString()}</span> training measurements</>
-                  : "training support not recorded"}
+                  ? <><span className="font-mono text-foreground">{support.toLocaleString()}</span> measurements for this allele</>
+                  : "per-allele training support not recorded"}
               </p>
             </div>
           </div>
@@ -193,7 +196,7 @@ export default function Home() {
               className="w-full sm:w-auto"
               data-testid="button-predict"
             >
-              {pending ? <><span className="loading-spinner mr-2" />Measuring…</> : "Measure binding"}
+              {pending ? <><span className="loading-spinner mr-2" />Calculating…</> : "Calculate binding score"}
             </Button>
           </div>
         </div>
@@ -202,7 +205,7 @@ export default function Home() {
       {/* ------------------------------------------------------- the readout */}
       {result && (
         <section ref={readoutRef} className="readout-enter mt-12" aria-labelledby="readout-heading">
-          <h2 id="readout-heading" className="instrument-label mb-3">Reading</h2>
+          <h2 id="readout-heading" className="instrument-label mb-3">Model result</h2>
 
           <div className="rounded-md border border-border bg-card p-6 sm:p-8">
             <div className="flex flex-wrap items-end justify-between gap-6">
@@ -211,10 +214,11 @@ export default function Home() {
                   {result.probability.toFixed(4)}
                 </output>
                 <div className="tick-scale mt-3 w-full max-w-[280px]" aria-hidden="true" />
-                <p className="instrument-label mt-2">P( IC50 &lt; 500 nM )</p>
+                <p className="instrument-label mt-2">Raw model score · IC50 &lt; 500 nM target</p>
               </div>
 
               <div className="text-right">
+                <p className="instrument-label mb-1">Relative binding rank</p>
                 <p className="font-mono text-lg text-foreground" data-testid="text-call">{result.rank}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   {result.probability > 0.8 ? "p > 0.8" : result.probability > 0.5 ? "0.5 < p ≤ 0.8" : "p ≤ 0.5"}
@@ -242,19 +246,19 @@ export default function Home() {
                 <dd className="seq text-xs text-muted-foreground">{result.mhcAllele}</dd>
               </div>
               <div>
-                <dt className="instrument-label">Training support</dt>
+                <dt className="instrument-label">Allele support</dt>
                 <dd className="mt-1 font-mono text-sm tabular">
                   {result.alleleSupportN?.toLocaleString() ?? "—"}
                 </dd>
-                <dd className="text-xs text-muted-foreground">measurements</dd>
+                <dd className="text-xs text-muted-foreground">training measurements</dd>
               </div>
               <div>
-                <dt className="instrument-label">Compute</dt>
+                <dt className="instrument-label">Scoring time</dt>
                 <dd className="mt-1 font-mono text-sm tabular">{result.computeTime}</dd>
                 <dd className="text-xs text-muted-foreground">in this browser</dd>
               </div>
               <div>
-                <dt className="instrument-label">Model</dt>
+                <dt className="instrument-label">Runtime</dt>
                 <dd className="mt-1 font-mono text-sm">XGBoost-trained</dd>
                 {/* "XGBoost" alone read as though XGBoost were running here. It is
                     not: the trees are exported and traversed in TypeScript. */}
@@ -265,7 +269,7 @@ export default function Home() {
 
           {/* Ochre appears here and nowhere else: a stated limitation. */}
           <div className="caveat mt-4">
-            <p className="instrument-label mb-1" style={{ color: "var(--caveat)" }}>Stated limitation</p>
+            <p className="instrument-label mb-1" style={{ color: "var(--caveat)" }}>How to interpret this score</p>
             <p className="text-sm text-muted-foreground">
               This is a raw, uncalibrated probability — Platt scaling was measured to fix it
               (ECE 0.093 → 0.008) but is not applied in production, so read it alongside the
@@ -280,7 +284,7 @@ export default function Home() {
 
       {/* -------------------------------------------------------- the method */}
       <section className="mt-12" aria-labelledby="method-heading">
-        <h2 id="method-heading" className="instrument-label mb-3">Method</h2>
+        <h2 id="method-heading" className="instrument-label mb-3">Model and evaluation data</h2>
         <dl className="divide-y divide-border border-y border-border text-sm">
           {[
             ["Algorithm", PMHC_MODEL_CARD.algorithm],
@@ -305,7 +309,7 @@ export default function Home() {
 
       {/* -------------------------------------------------- the evaluation */}
       <section className="mt-12" aria-labelledby="eval-heading">
-        <h2 id="eval-heading" className="instrument-label mb-3">What this model can and can't do</h2>
+        <h2 id="eval-heading" className="instrument-label mb-3">Validation limits and generalization</h2>
 
         {/* Split ladder: same data, four difficulties, same held-out metric.
             The point of this table is that 0.9188 is not one fixed truth —

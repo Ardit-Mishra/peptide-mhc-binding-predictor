@@ -14,10 +14,10 @@ import { Mutation } from "@/components/icons";
 // single-item "Method" section was a heading with one link under it. Three
 // destinations, flat — the app has three things you can do.
 const navigationItems = [
-  { name: "Predict", path: "/", icon: Target },
-  { name: "Batch", path: "/batch", icon: Upload },
-  { name: "Mutation scan", path: "/mutation-scan", icon: Mutation },
-  { name: "Benchmarks", path: "/visualize", icon: BarChart3 },
+  { name: "Single pair", path: "/", icon: Target },
+  { name: "Batch pairs", path: "/batch", icon: Upload },
+  { name: "Substitution scan", path: "/mutation-scan", icon: Mutation },
+  { name: "Local records", path: "/visualize", icon: BarChart3 },
 ];
 
 export default function Navigation() {
@@ -67,15 +67,15 @@ export default function Navigation() {
       <div className="p-4 border-t border-border">
           <div className="text-xs text-muted-foreground space-y-1">
             <div className="flex items-center justify-between">
-              <span>Model:</span>
-              <span className="text-accent" data-testid="status-model">XGBoost</span>
+              <span>Scoring model</span>
+              <span className="text-accent" data-testid="status-model">XGBoost trees</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Alleles:</span>
+              <span>Trained alleles</span>
               <span data-testid="status-alleles">129</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Runs:</span>
+              <span>Execution</span>
               <span data-testid="status-runtime">in your browser</span>
             </div>
           </div>
@@ -90,16 +90,10 @@ export default function Navigation() {
         <Card className="border-b border-border bg-card">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center space-x-3">
-              <div className="gradient-bg p-2 rounded-lg">
-                <Dna className="text-white text-lg" />
-              </div>
+              <Dna className="h-4 w-4 text-[var(--ds-accent)]" aria-hidden="true" />
               <div>
-                <h1 className="font-semibold text-foreground text-sm">
-                  Peptide-MHC Predictor
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  Research Platform
-                </p>
+                <h1 className="seq text-[13px] font-semibold text-foreground">pMHC</h1>
+                <p className="text-xs text-muted-foreground">Browser-scored research tool</p>
               </div>
             </div>
             <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>

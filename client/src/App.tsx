@@ -38,7 +38,7 @@ function ModelBanner() {
 
 function Router() {
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex min-h-[100dvh] flex-col bg-background">
       <ModelBanner />
       <div className="flex flex-col md:flex-row flex-1 min-h-0">
         <Navigation />
