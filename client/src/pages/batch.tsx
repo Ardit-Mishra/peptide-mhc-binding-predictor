@@ -10,11 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, Download, Play, Pause, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { apiRequest } from "@/lib/queryClient";
+import { parseBatchInput } from "@/lib/batch-input";
 import AlleleSelect from "@/components/allele-select";
 import { useToast } from "@/hooks/use-toast";
 import type { BatchJob, BatchUploadRequest } from "@shared/schema";
-
-const AA_ONLY = /^[ACDEFGHIKLMNPQRSTVWY]+$/;
 
 /** One scored peptide-allele pair, as returned by the in-browser backend. */
 type BatchResultRow = {
@@ -24,48 +23,6 @@ type BatchResultRow = {
   rank: string;
   alleleSupportN: number | null;
 };
-
-type ParsedRow = { peptide: string; allele: string; usedFallback: boolean };
-
-/**
- * Each line is `PEPTIDE` or `PEPTIDE,ALLELE` (comma, tab or semicolon).
- *
- * Binding is a property of the peptide-allele PAIR, so a row that names its own
- * allele is scored against that allele. A row that doesn't falls back to the
- * allele picked in the form — and `usedFallback` is surfaced in the UI, because
- * the previous behaviour (scoring every row against HLA-A*02:01 with no
- * indication) produced numbers that looked like results for pairings the user
- * never asked for.
- */
-export function parseBatchInput(
-  raw: string,
-  fallbackAllele: string,
-): { entries: ParsedRow[]; invalid: string[]; badLength: string[] } {
-  const entries: ParsedRow[] = [];
-  const invalid: string[] = [];
-  const badLength: string[] = [];
-
-  for (const line of raw.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith(">")) continue; // blank or FASTA header
-
-    const [rawPeptide = "", rawAllele = ""] = trimmed.split(/[,;\t]/, 2).map((s) => s.trim());
-    const peptide = rawPeptide.toUpperCase();
-
-    if (!AA_ONLY.test(peptide)) {
-      invalid.push(trimmed);
-    } else if (peptide.length < 8 || peptide.length > 11) {
-      badLength.push(peptide);
-    } else {
-      entries.push({
-        peptide,
-        allele: rawAllele || fallbackAllele,
-        usedFallback: rawAllele === "",
-      });
-    }
-  }
-  return { entries, invalid, badLength };
-}
 
 export default function BatchProcessing() {
   const [batchName, setBatchName] = useState("");
@@ -278,7 +235,7 @@ export default function BatchProcessing() {
                 id="sequences"
                 value={sequences}
                 onChange={(e) => setSequences(e.target.value)}
-                placeholder={"One per line. Add an allele per row to pair them:\nGILGFVFTL,HLA-A*02:01\nKRWIILGLNK,HLA-B*27:05\nNLVPMVATV"}
+                placeholder={"One per line, or FASTA. Add an allele per row to pair them:\nGILGFVFTL,HLA-A*02:01\nKRWIILGLNK,HLA-B*27:05\n>FASTA record | HLA-A*02:01\nNLVPMVATV"}
                 rows={8}
                 data-testid="textarea-sequences"
               />
@@ -311,7 +268,8 @@ export default function BatchProcessing() {
                   saying so, which made unrequested pairings look like findings. */}
               <p className="text-xs text-muted-foreground mt-2">
                 Rows written as <code className="font-mono">PEPTIDE,ALLELE</code> use their own allele.
-                This is only the fallback, and every result shows the allele it was actually scored against.
+                FASTA headers with <code className="font-mono">HLA-X*00:00</code> do too. This is only the fallback,
+                and every result shows the allele it was actually scored against.
               </p>
             </div>
 
