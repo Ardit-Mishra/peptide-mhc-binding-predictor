@@ -22,7 +22,7 @@
       name="description"
       content="Predict peptide–MHC class I binding across 129 HLA alleles in your browser. Gradient-boosted trees trained on MHCflurry-curated public measurements, held-out ROC-AUC 0.919, with the split-difficulty ladder published alongside it."
     />
-    <meta name="color-scheme" content="dark" />
+    <meta name="color-scheme" content="light dark" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Peptide–MHC Binding Predictor" />
@@ -36,6 +36,17 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("peptide-mhc-theme");
+          var theme = saved === "light" || saved === "dark"
+            ? saved
+            : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+          document.documentElement.classList.add(theme);
+        } catch (_) {}
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

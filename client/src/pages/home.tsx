@@ -94,11 +94,12 @@ export default function Home() {
   const residues = peptide.toUpperCase().split("");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-24">
+    <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
       {/* Identity: a hairline strip, not a card with a gradient logo tile. */}
-      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-border py-5">
+      <header className="page-masthead flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-border py-7">
         <div>
-          <h1 className="page-title">Single-pair binding estimate</h1>
+          <p className="instrument-label mb-2 text-[var(--ds-accent-ink)]">Peptide–MHC class I</p>
+          <h1 className="bench-title">Single-pair binding estimate</h1>
           <p className="page-subtitle">Score one peptide against one trained HLA allele.</p>
         </div>
         <p className="instrument-label">
@@ -106,11 +107,34 @@ export default function Home() {
         </p>
       </header>
 
+      <dl className="metric-rail mt-6" aria-label="Model coverage summary">
+        <div>
+          <dt>Trained alleles</dt>
+          <dd>{PMHC_MODEL_CARD.alleles}</dd>
+        </div>
+        <div>
+          <dt>Training measurements</dt>
+          <dd>{PMHC_MODEL_CARD.trainingExamples.toLocaleString()}</dd>
+        </div>
+        <div>
+          <dt>Held-out ROC-AUC</dt>
+          <dd>{PMHC_MODEL_CARD.rocAuc.toFixed(3)}</dd>
+        </div>
+        <div>
+          <dt>Execution</dt>
+          <dd className="text-[15px]">This browser</dd>
+        </div>
+      </dl>
+
       {/* ------------------------------------------------------ the specimen */}
       <section className="mt-10" aria-labelledby="pair-heading">
         <h2 id="pair-heading" className="instrument-label mb-3">Specify the peptide–allele pair</h2>
 
-        <div className="rounded-md border border-border bg-card">
+        <div className="bench-panel">
+          <div className="bench-panel-header">
+            <span className="instrument-label">Input specimen</span>
+            <span className="text-xs text-muted-foreground">Only trained alleles can be selected.</span>
+          </div>
           <div className="grid grid-cols-1 items-stretch sm:grid-cols-[1fr_auto_1fr]">
             {/* peptide */}
             <div className="p-4">
@@ -189,7 +213,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="border-t border-border p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border p-4">
+            <p className="text-xs text-muted-foreground">The output is retained only in this browser.</p>
             <Button
               onClick={measure}
               disabled={pending}
@@ -207,7 +232,11 @@ export default function Home() {
         <section ref={readoutRef} className="readout-enter mt-12" aria-labelledby="readout-heading">
           <h2 id="readout-heading" className="instrument-label mb-3">Model result</h2>
 
-          <div className="rounded-md border border-border bg-card p-6 sm:p-8">
+          <div className="readout-panel p-6 sm:p-8">
+            <div className="readout-panel-header">
+              <span className="instrument-label">Score readout</span>
+              <span className="text-xs text-muted-foreground">Deterministic exported-tree inference</span>
+            </div>
             <div className="flex flex-wrap items-end justify-between gap-6">
               <div>
                 <output className="readout-value block text-[clamp(48px,12vw,84px)]" data-testid="text-probability">

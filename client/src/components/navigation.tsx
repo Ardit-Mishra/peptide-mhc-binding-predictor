@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Mutation } from "@/components/icons";
+import ThemeToggle from "@/components/theme-toggle";
 
 // Only routes backed by the real in-browser model appear here. Pages that
 // rendered hardcoded "results" (mock motifs, invented mutation impacts,
@@ -32,7 +33,8 @@ export default function Navigation() {
       <div className="border-b border-border px-4 py-4">
         <div className="flex items-center gap-2.5">
           <Dna className="h-4 w-4 flex-none text-[var(--ds-accent)]" aria-hidden="true" />
-          <span className="seq text-[13px] font-semibold text-foreground">pMHC</span>
+          <span className="seq flex-1 text-[13px] font-semibold text-foreground">pMHC</span>
+          <ThemeToggle />
         </div>
       </div>
 
@@ -96,6 +98,7 @@ export default function Navigation() {
                 <p className="text-xs text-muted-foreground">Browser-scored research tool</p>
               </div>
             </div>
+            <ThemeToggle />
             <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="sm">

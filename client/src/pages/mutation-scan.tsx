@@ -129,19 +129,27 @@ export default function MutationScan() {
   }, [positionSensitivity]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-24">
+    <div className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
       <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-border py-5">
-        <h1 className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
-          <Mutation size={16} className="text-[var(--ds-accent)]" aria-hidden="true" />
-          Single-substitution scan
-        </h1>
+        <div>
+          <p className="instrument-label mb-2 text-[var(--ds-accent-ink)]">In-silico perturbation</p>
+          <h1 className="flex items-center gap-2 page-title">
+            <Mutation size={16} className="text-[var(--ds-accent)]" aria-hidden="true" />
+            Single-substitution scan
+          </h1>
+          <p className="page-subtitle">Compare the model score after every one-residue substitution.</p>
+        </div>
         <p className="instrument-label">Every one-residue substitution · local execution</p>
       </header>
 
       {/* --------------------------------------------------------- the setup */}
       <section className="mt-8" aria-labelledby="scan-setup-heading">
         <h2 id="scan-setup-heading" className="instrument-label mb-3">Select the peptide–allele pair to perturb</h2>
-        <div className="rounded-md border border-border bg-card">
+        <div className="bench-panel">
+          <div className="bench-panel-header">
+            <span className="instrument-label">Input specimen</span>
+            <span className="text-xs text-muted-foreground">20 substitutions per position</span>
+          </div>
           <div className="grid grid-cols-1 items-stretch sm:grid-cols-[1fr_auto_1fr]">
             <div className="p-4">
               <label htmlFor="scan-peptide" className="instrument-label">Peptide sequence · 8–11 residues</label>
@@ -209,7 +217,7 @@ export default function MutationScan() {
             </div>
           </div>
 
-          <div className="mt-3 overflow-x-auto rounded-md border border-border bg-card p-4">
+          <div className="mt-3 overflow-x-auto rounded-md border border-border bg-card p-4 shadow-sm">
             <table className="border-separate" style={{ borderSpacing: 2 }}>
               <thead>
                 <tr>

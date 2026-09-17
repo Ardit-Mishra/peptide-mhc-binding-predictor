@@ -6,9 +6,8 @@
  * not a SaaS dashboard. The measured probability is the hero; everything else
  * is chrome around a number.
  *
- * Deliberately single-theme (dark instrument panel) rather than a light/dark
- * pair — an instrument face is a committed object, not a themeable surface.
- * Every colour is therefore declared explicitly; nothing is inherited.
+ * Two fully specified instrument surfaces: a bright bench for daytime work and
+ * a dark console for low-light work. Semantic tokens carry meaning across both.
  *
  * Removed from the previous build, all generic-template tells:
  *   Inter                     -> Bricolage Grotesque (has an actual voice)
@@ -25,55 +24,58 @@
 @tailwind utilities;
 
 :root {
-  /* Ground: cool slate, not pure black. Pure black + one acid accent is the
-     current house style of generated UIs; a slight blue bias reads as chosen. */
+  color-scheme: light;
+  --ds-ground: #f4f7fb;
+  --ds-surface: #ffffff;
+  --ds-surface-sunk: #eaf0f6;
+  --ds-border: #d5dfe9;
+  --ds-border-strong: #aebdce;
+  --ds-ink: #132238;
+  --ds-ink-muted: #53657b;
+  --ds-ink-faint: #748399;
+  --ds-accent: #356fcf;
+  --ds-accent-ink: #1f559f;
+  --ds-accent-soft: #eaf1ff;
+  --ds-on-accent: #ffffff;
+  --ds-caveat: #9a6415;
+  --ds-caveat-surface: #fff6e7;
+  --ds-safe: #24754c;
+  --ds-critical: #b84a55;
+
   --background: var(--ds-ground);
   --foreground: var(--ds-ink);
   --card: var(--ds-surface);
   --card-foreground: var(--ds-ink);
   --popover: var(--ds-surface);
   --popover-foreground: var(--ds-ink);
-
-  /* Accent: AlphaFold's high-confidence pLDDT blue, lifted for a dark ground.
-     Borrowed from this domain's own instruments rather than a brand palette. */
   --primary: var(--ds-accent);
   --primary-foreground: var(--ds-on-accent);
-
-  --secondary: hsl(215, 20%, 20%);
+  --secondary: #edf2f7;
   --secondary-foreground: var(--ds-ink);
   --muted: var(--ds-surface-sunk);
   --muted-foreground: var(--ds-ink-muted);
-
-  /* Ochre is reserved for ONE meaning: a stated limitation. It never decorates.
-     Seeing it anywhere on screen means the app is qualifying a claim. */
   --accent: var(--ds-caveat);
-  --accent-foreground: hsl(215, 28%, 9%);
+  --accent-foreground: var(--ds-ink);
   --caveat: var(--ds-caveat);
   --caveat-surface: var(--ds-caveat-surface);
-
   --destructive: var(--ds-critical);
-  --destructive-foreground: hsl(210, 22%, 96%);
-
+  --destructive-foreground: #ffffff;
   --border: var(--ds-border);
-  --input: hsl(215, 20%, 17%);
+  --input: #ffffff;
   --ring: var(--ds-accent);
-
-  /* Sequential, single-hue: a categorical rainbow would imply the categories
-     are unordered, and these are all magnitudes of the same measurement. */
-  --chart-1: hsl(219, 100%, 71%);
-  --chart-2: hsl(219, 72%, 58%);
-  --chart-3: hsl(219, 48%, 46%);
-  --chart-4: hsl(215, 26%, 36%);
-  --chart-5: hsl(38, 62%, 58%);
-
-  --sidebar: hsl(215, 27%, 11%);
-  --sidebar-foreground: hsl(210, 22%, 93%);
-  --sidebar-primary: hsl(219, 100%, 71%);
-  --sidebar-primary-foreground: hsl(215, 28%, 9%);
-  --sidebar-accent: hsl(215, 22%, 16%);
-  --sidebar-accent-foreground: hsl(210, 22%, 93%);
-  --sidebar-border: hsl(215, 18%, 21%);
-  --sidebar-ring: hsl(219, 100%, 71%);
+  --chart-1: #356fcf;
+  --chart-2: #5086dd;
+  --chart-3: #7aa4e7;
+  --chart-4: #aec6ed;
+  --chart-5: #b77b1f;
+  --sidebar: #f8fafc;
+  --sidebar-foreground: var(--ds-ink);
+  --sidebar-primary: var(--ds-accent);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--ds-accent-soft);
+  --sidebar-accent-foreground: var(--ds-ink);
+  --sidebar-border: var(--ds-border);
+  --sidebar-ring: var(--ds-accent);
 
   --font-sans: var(--ds-font-ui);
   --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
@@ -82,8 +84,52 @@
   /* Tight radius: instrument panels have machined corners, not pill shapes. */
   --radius: var(--ds-radius-md);
 
-  /* Shadows carry no narrative here — elevation is expressed with hairlines.
-     Kept minimal so shadcn primitives that reference them still resolve. */
+  --shadow-2xs: 0 1px 1px rgba(32, 53, 78, .05);
+  --shadow-xs: 0 1px 2px rgba(32, 53, 78, .06);
+  --shadow-sm: 0 1px 3px rgba(32, 53, 78, .07);
+  --shadow: 0 3px 10px rgba(32, 53, 78, .08);
+  --shadow-md: 0 8px 22px rgba(32, 53, 78, .10);
+  --shadow-lg: 0 14px 34px rgba(32, 53, 78, .12);
+  --shadow-xl: 0 22px 48px rgba(32, 53, 78, .14);
+  --shadow-2xl: 0 32px 64px rgba(32, 53, 78, .16);
+
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+.dark {
+  color-scheme: dark;
+  --ds-ground: #11161d;
+  --ds-surface: #171e27;
+  --ds-surface-sunk: #0e131a;
+  --ds-border: #232c36;
+  --ds-border-strong: #33404e;
+  --ds-ink: #e7ecf3;
+  --ds-ink-muted: #8d9aaa;
+  --ds-ink-faint: #5f6c7b;
+  --ds-accent: #6e9bff;
+  --ds-accent-ink: #a9c4ff;
+  --ds-accent-soft: #16223a;
+  --ds-on-accent: #11161d;
+  --ds-caveat: #d9a44f;
+  --ds-caveat-surface: #241c0e;
+  --ds-safe: #5fbf8f;
+  --ds-critical: #e06c75;
+  --secondary: #263341;
+  --input: #17202a;
+  --chart-1: #6e9bff;
+  --chart-2: #5a80d3;
+  --chart-3: #4666aa;
+  --chart-4: #354c75;
+  --chart-5: #d9a44f;
+  --sidebar: #111820;
+  --sidebar-foreground: var(--ds-ink);
+  --sidebar-primary: var(--ds-accent);
+  --sidebar-primary-foreground: var(--ds-on-accent);
+  --sidebar-accent: #1b2735;
+  --sidebar-accent-foreground: var(--ds-ink);
+  --sidebar-border: var(--ds-border);
+  --sidebar-ring: var(--ds-accent);
   --shadow-2xs: 0 1px 1px rgba(0, 0, 0, .30);
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, .35);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, .35);
@@ -92,14 +138,6 @@
   --shadow-lg: 0 6px 18px rgba(0, 0, 0, .50);
   --shadow-xl: 0 10px 28px rgba(0, 0, 0, .55);
   --shadow-2xl: 0 18px 44px rgba(0, 0, 0, .60);
-
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
-}
-
-/* The panel is the design. `.dark` mirrors `:root` so any consumer toggling it
-   sees the same instrument rather than a half-defined second theme. */
-.dark {
   color-scheme: dark;
 }
 
@@ -113,6 +151,8 @@
     font-family: var(--font-sans);
     font-size: 15px;
     line-height: 1.55;
+    background-image: linear-gradient(to right, color-mix(in srgb, var(--border) 42%, transparent) 1px, transparent 1px), linear-gradient(to bottom, color-mix(in srgb, var(--border) 42%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 
   h1, h2, h3, h4 {
@@ -127,7 +167,7 @@
   }
 
   ::selection {
-    background: hsl(219, 100%, 71%, .25);
+    background: color-mix(in srgb, var(--primary) 25%, transparent);
     color: var(--foreground);
   }
 
@@ -174,7 +214,7 @@
   }
 
   .page-title {
-    font-size: 1.125rem;
+    font-size: 1.25rem;
     font-weight: 600;
     letter-spacing: -0.015em;
     line-height: 1.2;
@@ -186,6 +226,111 @@
     color: var(--muted-foreground);
     font-size: 0.8125rem;
     line-height: 1.5;
+  }
+
+  .bench-title {
+    max-width: 18ch;
+    color: var(--foreground);
+    font-size: clamp(1.8rem, 4vw, 3.25rem);
+    font-weight: 600;
+    letter-spacing: -0.035em;
+    line-height: 1.04;
+  }
+
+  .metric-rail {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--card) 90%, transparent);
+  }
+
+  .metric-rail > div {
+    min-height: 78px;
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .metric-rail > div:nth-child(odd) {
+    border-right: 1px solid var(--border);
+  }
+
+  .metric-rail > div:nth-last-child(-n + 2) {
+    border-bottom: 0;
+  }
+
+  .metric-rail dt {
+    color: var(--muted-foreground);
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .metric-rail dd {
+    margin-top: 0.45rem;
+    color: var(--foreground);
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    font-weight: 500;
+    letter-spacing: -0.025em;
+  }
+
+  .bench-panel,
+  .readout-panel {
+    overflow: hidden;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--ds-radius-md);
+    background: var(--card);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .workflow-panel {
+    border-color: var(--border);
+    background: color-mix(in srgb, var(--card) 96%, transparent);
+  }
+
+  .workflow-panel > :first-child {
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in srgb, var(--muted) 72%, transparent);
+  }
+
+  .bench-panel-header,
+  .readout-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 42px;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--muted);
+  }
+
+  .readout-panel-header {
+    margin: -1.5rem -1.5rem 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .readout-panel-header {
+      margin: -2rem -2rem 2rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .metric-rail {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .metric-rail > div,
+    .metric-rail > div:nth-last-child(-n + 2) {
+      border-bottom: 0;
+      border-right: 1px solid var(--border);
+    }
+
+    .metric-rail > div:last-child {
+      border-right: 0;
+    }
   }
 
   /* Peptides are read residue by residue, so they get tracking and never wrap
@@ -252,7 +397,7 @@
   }
   .model-tab.active {
     border-color: var(--primary);
-    background: hsl(219, 100%, 71%, .10);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
     color: var(--foreground);
   }
 

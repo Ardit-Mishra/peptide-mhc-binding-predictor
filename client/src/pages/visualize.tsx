@@ -42,15 +42,17 @@ export default function Visualization() {
 
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-6xl space-y-6 px-4 pb-24 sm:px-6">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6 pt-7">
         <div>
+          <p className="instrument-label mb-2 text-[var(--ds-accent-ink)]">Browser-local evidence</p>
           <h1 className="page-title">Local prediction records</h1>
           <p className="page-subtitle">A private history from this browser; it is not a shared study dataset.</p>
         </div>
-      </div>
+        <p className="instrument-label">No account · no server</p>
+      </header>
 
-      <Card>
+      <Card className="workflow-panel shadow-none">
         <CardContent className="p-4">
           <div className="flex items-center space-x-2 text-muted-foreground">
             <Info className="w-5 h-5 shrink-0" />
@@ -65,7 +67,7 @@ export default function Visualization() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Real held-out evaluation of the model being integrated (offline, not live app output) */}
-        <Card>
+        <Card className="workflow-panel shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <BarChart3 className="w-5 h-5" />
@@ -83,14 +85,14 @@ export default function Visualization() {
                 <XAxis dataKey="model" tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 1]} />
                 <Tooltip />
-                <Bar dataKey="rocAuc" fill="#3b82f6" name="ROC-AUC" />
+                <Bar dataKey="rocAuc" fill="var(--chart-1)" name="ROC-AUC" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Prediction Distribution */}
-        <Card>
+        <Card className="workflow-panel shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5" />
@@ -109,14 +111,14 @@ export default function Visualization() {
                 <XAxis dataKey="range" />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="count" fill="#f59e0b" name="Count" />
+                <Bar dataKey="count" fill="var(--chart-5)" name="Count" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* Sequence Length Analysis */}
-        <Card className="lg:col-span-2">
+        <Card className="workflow-panel shadow-none lg:col-span-2">
           <CardHeader>
           <CardTitle>Peptide lengths in saved records</CardTitle>
           </CardHeader>
@@ -132,7 +134,7 @@ export default function Visualization() {
                 <XAxis dataKey="length" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#8b5cf6" strokeWidth={3} />
+                <Line type="monotone" dataKey="count" stroke="var(--chart-2)" strokeWidth={3} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -140,7 +142,7 @@ export default function Visualization() {
       </div>
 
       {/* This is deliberately the one export the static app can prove. */}
-      <Card>
+      <Card className="workflow-panel shadow-none">
         <CardHeader>
           <CardTitle>Export these local records</CardTitle>
         </CardHeader>

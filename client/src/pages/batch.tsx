@@ -200,17 +200,19 @@ export default function BatchProcessing() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="mx-auto max-w-6xl space-y-6 px-4 pb-24 sm:px-6">
+      <header className="workflow-header flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6 pt-7">
         <div>
+          <p className="instrument-label mb-2 text-[var(--ds-accent-ink)]">Peptide–MHC class I</p>
           <h1 className="page-title">Batch peptide–allele scoring</h1>
           <p className="page-subtitle">Each output preserves the exact peptide–allele pair that was scored.</p>
         </div>
-      </div>
+        <p className="instrument-label">Private to this browser</p>
+      </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Create New Batch */}
-        <Card>
+        <Card className="workflow-panel shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Upload className="w-5 h-5" />
@@ -295,7 +297,7 @@ export default function BatchProcessing() {
         </Card>
 
         {/* Batch Jobs Status */}
-        <Card>
+        <Card className="workflow-panel shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <Clock className="w-5 h-5" />
