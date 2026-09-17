@@ -1,15 +1,12 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, TrendingUp, Info } from "lucide-react";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { downloadPredictionHistory, type PredictionHistoryRecord } from "@/lib/prediction-export";
 
 export default function Visualization() {
-  const [selectedDataset, setSelectedDataset] = useState("recent");
-  const [selectedMetric, setSelectedMetric] = useState("probability");
-
   // Held-out evaluation of the model this app actually serves.
   const heldOutEval = [
     { model: 'XGBoost + allele pseudo-seq', rocAuc: 0.9188, prAuc: 0.8085 },
@@ -17,9 +14,9 @@ export default function Visualization() {
 
   // Charts below are built from predictions made in THIS browser. With no
   // history yet they render empty rather than showing invented numbers.
-  const { data: predictions = [] } = useQuery<
-    { sequence: string; probability: number }[]
-  >({ queryKey: ["/api/predictions"] });
+  const { data: predictions = [] } = useQuery<PredictionHistoryRecord[]>({
+    queryKey: ["/api/predictions"],
+  });
 
   const predictionDistribution = useMemo(() => {
     const bins = [
@@ -48,43 +45,17 @@ export default function Visualization() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Interactive Visualization</h1>
-          <p className="text-muted-foreground">Comprehensive analysis and visualization of prediction data</p>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <Select value={selectedDataset} onValueChange={setSelectedDataset}>
-            <SelectTrigger className="w-40" data-testid="select-dataset">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="recent">Recent Data</SelectItem>
-              <SelectItem value="all">All Time</SelectItem>
-              <SelectItem value="batch">Batch Results</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-            <SelectTrigger className="w-40" data-testid="select-metric">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {/* No "Confidence" option: the model emits a probability and no
-                  uncertainty estimate, so there is nothing else to plot. */}
-              <SelectItem value="probability">Probability</SelectItem>
-              <SelectItem value="compute_time">Compute Time</SelectItem>
-            </SelectContent>
-          </Select>
+          <h1 className="text-2xl font-bold text-foreground">Local prediction history</h1>
+          <p className="text-muted-foreground">Charts and records saved in this browser only</p>
         </div>
       </div>
 
-      {/* Usage stats: no real usage history exists in this demo build. */}
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center space-x-2 text-muted-foreground">
             <Info className="w-5 h-5 shrink-0" />
             <p className="text-sm">
-              No usage history — this is a demonstration build with no real prediction traffic.
+              Predictions stay private to this browser. Clear browser storage to remove them.
             </p>
           </div>
         </CardContent>
@@ -168,26 +139,25 @@ export default function Visualization() {
         </Card>
       </div>
 
-      {/* Export Options */}
+      {/* This is deliberately the one export the static app can prove. */}
       <Card>
         <CardHeader>
-          <CardTitle>Export & Sharing</CardTitle>
+          <CardTitle>Export local records</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" data-testid="button-export-png">
-              Export as PNG
-            </Button>
-            <Button variant="outline" size="sm" data-testid="button-export-pdf">
-              Export as PDF
-            </Button>
-            <Button variant="outline" size="sm" data-testid="button-export-csv">
-              Export Data as CSV
-            </Button>
-            <Button variant="outline" size="sm" data-testid="button-share-dashboard">
-              Share Dashboard
-            </Button>
-          </div>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Downloads the prediction history retained in this browser. Scores are raw model outputs,
+            not calibrated probabilities or clinical results.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={predictions.length === 0}
+            onClick={() => downloadPredictionHistory(predictions)}
+            data-testid="button-export-prediction-csv"
+          >
+            Download CSV
+          </Button>
         </CardContent>
       </Card>
     </div>
