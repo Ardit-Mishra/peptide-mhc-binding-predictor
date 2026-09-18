@@ -1,262 +1,84 @@
 # System Architecture
 
-This document describes the technical architecture of the Peptide-MHC Binding Predictor, covering the frontend, backend, data flow, and deployment configuration.
-
 ## Overview
 
-The application follows a monolithic full-stack architecture where a single Node.js process serves both the REST API and the client-side application. In development, Vite provides hot module replacement; in production, pre-built static assets are served directly by Express.
+Peptide-MHC is a static React/Vite application. It has no Express service,
+database, server-side prediction endpoint, credential, or background worker.
+All prediction and history behavior occurs in the user's browser.
 
 ```
-                    +---------------------+
-                    |    Client Browser    |
-                    +----------+----------+
-                               |
-                         HTTP / JSON
-                               |
-                    +----------v----------+
-                    |    Express Server    |
-                    |    (port 5000)       |
-                    +----------+----------+
-                               |
-              +----------------+----------------+
-              |                |                |
-     +--------v------+  +-----v------+  +------v--------+
-     |  REST API     |  |  Static    |  |  Vite Dev     |
-     |  /api/*       |  |  Assets    |  |  Server (dev) |
-     +--------+------+  +------------+  +---------------+
-              |
-     +--------v------+
-     |  Storage      |
-     |  Interface    |
-     +--------+------+
-              |
-     +--------v------+
-     |  Model        |
-     |  Inference    |
-     +---------------+
+Browser
+  |
+  +-- React UI and local request handlers
+  |      |
+  |      +-- asset loader
+  |      |      +-- pmhc_alleles.json (129 pseudo-sequences and support counts)
+  |      |      +-- pmhc_model.json (exported XGBoost trees)
+  |      |
+  |      +-- PeptideMHCPredictor (TypeScript tree traversal)
+  |      +-- localStorage (local prediction history only)
+  |
+  +-- static host (serves files only)
 ```
 
-## Frontend Architecture
+## Runtime surfaces
 
-### Technology Stack
+| Surface | Location | Responsibility |
+|---|---|---|
+| UI shell and routes | `client/src/App.tsx` | React routing and research-use notice |
+| Single prediction | `client/src/pages/home.tsx` | peptide/allele input and result presentation |
+| Batch prediction | `client/src/pages/batch.tsx` | FASTA/CSV parsing and allele-preserving batch output |
+| Mutation scan | `client/src/pages/mutation-scan.tsx` | in-silico single-residue comparisons |
+| Local visualizations | `client/src/pages/visualize.tsx` | browser-local history and CSV export |
+| Local API boundary | `client/src/lib/local-backend.ts` | validated in-browser request handling |
+| Model loader | `client/src/lib/pmhc-model.ts` | lazy, cached loading of static model assets |
+| Inference runtime | `shared/pmhc-predictor.ts` | encoding and compact tree traversal |
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| UI Framework | React 18 | Component-based rendering |
-| Language | TypeScript | Type safety |
-| Build Tool | Vite | Development server, production bundling |
-| State | TanStack Query v5 | Server state caching, mutation management |
-| Routing | Wouter | Lightweight client-side routing |
-| Styling | Tailwind CSS + shadcn/ui | Utility-first CSS with accessible components |
-| Forms | React Hook Form + Zod | Validated form state management |
-| Charts | Recharts | Data visualization |
+Routes are `/`, `/predict`, `/batch`, `/mutation-scan`, and `/visualize`. The
+application may use TanStack Query for local request/cache ergonomics, but no
+request in the prediction path reaches a remote API.
 
-### Component Organization
+## Inference data flow
 
-Components are organized by feature rather than by type:
+1. The UI validates an 8-11 residue peptide and a selected HLA allele.
+2. The local request boundary loads the allele table and compact model JSON on
+   demand. The 2.6 MB model is not fetched until first prediction.
+3. `PeptideMHCPredictor` encodes the peptide (11 x 20) and allele
+   pseudo-sequence (39 x 20) into 1,000 features.
+4. The exported 800-tree XGBoost ensemble is traversed in TypeScript and its
+   raw sigmoid output is returned with support metadata.
+5. The result is displayed locally. Optional history is stored in browser
+   `localStorage` and never sent to a service operated by this project.
 
-- `components/prediction-form.tsx` -- Sequence input form with model selection
-- `components/prediction-results.tsx` -- Prediction output display
-- `components/model-performance.tsx` -- Model metrics comparison
-- `components/model-selector.tsx` -- Model architecture selector
-- `components/system-status.tsx` -- Health and status indicators
-- `components/navigation.tsx` -- Application navigation
-- `components/recent-activity.tsx` -- Activity feed
-- `components/ui/` -- Generic shadcn/ui components (Button, Card, Dialog, etc.)
+An allele outside the shipped 129-allele support set is rejected. This avoids a
+plausible-looking score produced with missing allele features.
 
-### Page Structure
+## Static artifacts and provenance
 
-Each page corresponds to a route registered in `App.tsx`:
+| Artifact | Role |
+|---|---|
+| `client/public/models/pmhc_model.json` | exported tree ensemble consumed by the browser runtime |
+| `client/public/models/pmhc_alleles.json` | supported allele pseudo-sequences and training-row counts |
+| `scripts/fixtures/python-reference.json` | Python-booster reference scores for browser/Python parity testing |
+| `scripts/fixtures/training-metrics/` | immutable metric snapshots with SHA-256 manifest |
 
-| Route | Page | Description |
-|-------|------|-------------|
-| `/` | `home.tsx` | Dashboard with status, model metrics, and quick prediction |
-| `/batch` | `batch.tsx` | Batch sequence processing |
-| `/analysis` | `analysis.tsx` | Mutation impact analysis |
-| `/design` | `design.tsx` | Peptide sequence designer |
-| `/visualize` | `visualize.tsx` | Interactive data visualizations |
-| `/databases` | `databases.tsx` | Scientific database browser |
-| `/literature` | `literature.tsx` | Literature and research tools |
-| `/projects` | `projects.tsx` | Project workspace management |
-| `/settings` | `settings.tsx` | Application settings |
+The model loader caches successful asset loads as a promise and clears failed
+loads so a transient asset failure can be retried. Test coverage pins the
+browser fixture to the exact model and allele asset hashes.
 
-### Data Fetching
+## Build and deployment
 
-All server communication uses TanStack Query with a default fetch-based query function. Queries are keyed by API path for automatic cache invalidation:
+`npm run build` produces `dist/public`. A static host only needs to serve that
+directory and preserve the SPA fallback without rewriting `/models/` assets.
+`vercel.json` captures the deployed static-host configuration.
 
-```typescript
-// Queries use the default fetcher (no queryFn needed)
-const { data } = useQuery({ queryKey: ['/api/system-status'] });
+There is intentionally no API deployment, database migration, secret
+configuration, or server health endpoint. Release verification is a static
+bundle and scientific-evidence gate; see [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md).
 
-// Mutations use apiRequest and invalidate relevant caches
-const mutation = useMutation({
-  mutationFn: (data) => apiRequest('POST', '/api/predict', data),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['/api/predictions'] })
-});
-```
+## Security and privacy boundaries
 
-## Backend Architecture
-
-### Server Initialization
-
-The server startup sequence in `server/index.ts`:
-
-1. Create Express application with JSON and URL-encoded body parsing
-2. Register request logging middleware for `/api/*` routes
-3. Register all API routes via `registerRoutes()`
-4. Initialize model loading in the background (non-blocking)
-5. Set up Vite dev server (development) or static file serving (production)
-6. Bind to port 5000 on 0.0.0.0
-
-### API Layer
-
-Routes are defined in `server/routes.ts` and follow RESTful conventions:
-
-- All API endpoints are prefixed with `/api/`
-- Request bodies are validated using Zod schemas from `shared/schema.ts`
-- Responses use consistent JSON formatting
-- Error responses include structured error messages
-
-### Storage Interface
-
-The storage layer (`server/storage.ts`) defines an `IStorage` interface that abstracts all data operations. The current implementation uses in-memory storage (`MemStorage`), but the interface is designed for drop-in replacement with a database-backed implementation.
-
-The schema is defined using Drizzle ORM in `shared/schema.ts`, providing:
-- Type-safe table definitions
-- Insert schemas via `drizzle-zod`
-- Shared types between frontend and backend
-
-### Model Inference Pipeline
-
-```
-Sequence Input (string)
-    |
-    v
-Validation (Zod schema: 1-15 chars, standard amino acids)
-    |
-    v
-Model Selection (cnn | bilstm | cnn_bilstm | cnn_bilstm_best | transformer)
-    |
-    v
-Preprocessing (one-hot encoding: string -> [15 x 20] tensor)
-    |
-    v
-Inference (model.predict() -> probability, confidence)
-    |
-    v
-Post-processing (rank classification, metric aggregation)
-    |
-    v
-Response (JSON with probability, confidence, rank, compute time, model metrics)
-```
-
-### Model Loading
-
-**This section describes the current demonstration state, not a real inference pipeline.**
-
-The `ModelLoader` service only checks for the *presence* of `.pt` files in the `models/`
-directory at startup; it does not parse, deserialize, or load any weights into an inference
-engine, and no PyTorch (or other) runtime is invoked. This existence check exists solely to
-populate the `/api/health` "models loaded" status indicator in the UI.
-
-1. On startup, checks whether `.pt` files exist in the `models/` directory
-2. If files are missing and Google Drive credentials are configured, an existence check against
-   Drive is attempted instead
-3. Loading status (file-present/file-missing, not weights-loaded) is tracked and exposed via the
-   health check endpoint
-4. Actual predictions come from a placeholder function in `server/models/*.ts` (see
-   `docs/model-methodology.md`), not from these files — the `.pt` files are not currently used
-   for inference at all
-
-## Data Model
-
-### Core Tables (Drizzle Schema)
-
-```
-users
-  id          VARCHAR (PK, UUID)
-  username    TEXT (unique)
-  password    TEXT
-
-predictions
-  id          VARCHAR (PK, UUID)
-  sequence    TEXT
-  model       TEXT
-  probability REAL
-  confidence  REAL
-  mhcAllele   TEXT
-  computeTime REAL
-  createdAt   TIMESTAMP
-
-systemStatus
-  id                    VARCHAR (PK, UUID)
-  googleDriveConnected  BOOLEAN
-  modelsLoaded          INTEGER
-  datasetAccessible     BOOLEAN
-  lastSync              TIMESTAMP
-  cacheSize             INTEGER
-  predictionsToday      INTEGER
-
-projects
-  id          VARCHAR (PK, UUID)
-  name        TEXT
-  description TEXT
-  userId      VARCHAR
-  isPublic    BOOLEAN
-  createdAt   TIMESTAMP
-  updatedAt   TIMESTAMP
-
-batchJobs
-  id                  VARCHAR (PK, UUID)
-  projectId           VARCHAR
-  name                TEXT
-  status              TEXT (pending | running | completed | failed)
-  totalSequences      INTEGER
-  processedSequences  INTEGER
-  models              TEXT[]
-  results             JSONB
-  createdAt           TIMESTAMP
-  completedAt         TIMESTAMP
-```
-
-Additional tables support mutation analysis, peptide design suggestions, literature references, experimental validation data, and model performance tracking.
-
-## Deployment
-
-### Development Mode
-
-```bash
-npm run dev
-```
-
-- Vite dev server provides hot module replacement for React components
-- TypeScript is compiled on-the-fly via `tsx`
-- API requests and static assets are served on the same port (5000)
-
-### Production Mode
-
-```bash
-npm run build  # Vite builds frontend; esbuild bundles server
-npm start      # Runs bundled server from dist/
-```
-
-- Frontend is pre-built to `dist/public/` with hashed asset filenames
-- Server is bundled to `dist/index.js` as a single ESM file
-- Express serves static files from `dist/public/` with a catch-all fallback to `index.html` for client-side routing
-
-### Health Checks
-
-The `/api/health` endpoint reports:
-- Server uptime and readiness state
-- Model loading progress (count and percentage)
-- Memory usage (RSS, heap, external)
-- Service connectivity (Google Drive, database)
-
-The server returns HTTP 200 when fully operational, 202 during initialization, and 503 when models are still loading.
-
-### Graceful Shutdown
-
-The server handles SIGTERM and SIGINT signals for clean shutdown:
-- Active connections are allowed to complete (30-second timeout)
-- Resources are released before process exit
-- Uncaught exceptions and unhandled rejections trigger graceful shutdown
+- Predictions execute on-device; the project does not receive peptide inputs.
+- No model or workflow secret is embedded in the bundle.
+- Browser history is local and is exportable or removable by the user.
+- The workbench has a research-only boundary and makes no clinical claim.

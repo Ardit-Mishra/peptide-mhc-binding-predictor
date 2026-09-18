@@ -177,23 +177,20 @@ difference. The check fails the build if any difference exceeds 1e-06.
 
 ## What this app does *not* do
 
-- No IEDB, UniProt, or PDB integration exists. Those endpoints report
-  "not connected" rather than returning invented records.
-- The peptide designer generates **uniformly random** sequences and scores them
-  with the model. It is not a generative or optimization model.
-- Motif-enrichment p-values on the analysis page are static illustrative
-  examples and are labelled as such in the UI.
+- It does not call IEDB, UniProt, PDB, or literature APIs.
+- It is not a generative peptide-design or optimization system.
+- It does not model MHC class II binding, peptide presentation, or
+  immunogenicity.
+- It is not validated for clinical or diagnostic use.
 
 ## Reproducing the model
 
-Training code lives in `ml-training/peptide-mhc/`, a sibling repository that is
-not published. It carries a dataset card and a model card at
-`docs/DATASET-CARD.md` and `docs/MODEL-CARD.md`, covering the data provenance
-and filters, the split ladder, leave-one-allele-out, calibration, and the
-architectures that were evaluated and lost.
-
-These are deliberately not links: that repository has no remote, so a relative
-link would resolve to nothing on GitHub.
+The original training checkout lives outside this repository and is not
+published here. This repository instead carries a traceable evidence package:
+the shipped browser assets, a 516-pair Python-output reference fixture, and
+verbatim training-metric snapshots. Read
+[docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md) for the exact independent
+verification boundary.
 
 The headline numbers quoted in this file are checked against those artifacts by
 `scripts/tests/model-card.test.mjs` **on every CI run**. The three artifacts it
@@ -209,16 +206,10 @@ that the committed fixtures have not drifted from the live `ml-training`
 artifacts. That one needs the real repository, and it is what stops the fixtures
 becoming a snapshot of a model that no longer exists.
 
-The exact commands — bash and PowerShell, Docker and `uv` — are in that repo's
-`README.md`, kept in one place so they cannot drift apart. Its pinned
-environment is a fully resolved 57-package `requirements-lock.txt`, verified to
-install at Python 3.12. **Its Docker image has not yet been built**, so treat
-the containerised path as unverified; the `uv` path has been used. Export the
-browser artifact afterwards with `python export_for_browser.py`.
-
-The command previously documented here omitted `--python 3.12` and the three
-MLflow dependencies `train_baseline.py` requires, so it failed before training
-started.
+The optional local source-artifact guard and browser/Python parity commands are
+documented in [docs/REPRODUCIBILITY.md](docs/REPRODUCIBILITY.md). They remain
+separate from the always-runnable fixture and asset checks so CI does not imply
+that a private training environment was available.
 
 ## Citation
 

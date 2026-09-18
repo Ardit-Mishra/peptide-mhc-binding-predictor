@@ -2,201 +2,117 @@
 
 # Peptide-MHC Class I Binding Predictor
 
-Predicts whether a short peptide will bind a given human MHC class I (HLA)
-molecule — the step that determines which fragments of a protein get displayed
-to T cells. The trained model runs **entirely in the browser**; there is no
-backend, no database, and no server to wake up.
+A browser-local research workbench for scoring 8-11 residue peptides against
+human MHC class I (HLA) alleles. It runs a trained, allele-conditioned XGBoost
+model entirely on the user's machine: no prediction API, database, secret, or
+server-side inference path is involved.
 
-**Live:** [peptide.arditmishra.com](https://peptide.arditmishra.com)
+**Release status:** this repository contains the final release candidate. The
+public custom-domain deployment is intentionally held for portfolio release
+review; see [the release checklist](docs/RELEASE-CHECKLIST.md).
 
-> Research and educational use only. This is not a clinical or diagnostic tool.
+**Read first:** [model card](docs/MODEL-CARD.md) ·
+[benchmarks](BENCHMARKS.md) ·
+[reproducibility boundary](docs/REPRODUCIBILITY.md) ·
+[architecture](docs/architecture.md)
+
+> Research and educational use only. This application is not a clinical,
+> diagnostic, or treatment-selection tool.
 
 ---
 
 ## What it does
 
-Given a peptide (8-11 residues) and an HLA allele, the app returns the model's
-score that the pair binds with IC50 < 500 nM, plus how many training
-measurements back that particular allele.
+Given an 8-11 residue peptide and an HLA class I allele, the workbench returns
+the model's raw score for the training target, IC50 < 500 nM. It supports
+single prediction, allele-preserving batch FASTA/CSV input, mutation scanning,
+and local-only history/export.
 
-That score is the model's **raw, uncalibrated** sigmoid output. It ranks well
-(ROC-AUC 0.919) but is systematically under-confident as a probability
-(10-bin ECE 0.093). Platt scaling on held-out validation data would cut that to
-0.008 at no cost in ROC-AUC, and is deliberately **not** applied in production —
-see [Calibration](BENCHMARKS.md#calibration). Read it as a ranking score, not as a
-probability you can act on.
+The score is an **uncalibrated ranking signal**, not a probability of binding.
+It has held-out ROC-AUC **0.9188** and PR-AUC **0.8085** on a peptide-grouped
+split, but raw 10-bin ECE **0.0925**. Read it as comparative evidence rather
+than a clinical probability; full limitations are in the
+[model card](docs/MODEL-CARD.md#limitations-and-non-goals).
 
-The allele is encoded as its **39-residue pseudo-sequence** — binding-groove
-residues that contact the peptide, following the idea NetMHCpan introduced.
-(NetMHCpan's own pseudo-sequence is 34 residues; the MHCflurry
-`allele_sequences` release used here ships 39, and 39 is what the model was
-trained and shipped with: 39 x 20 = 780 of the 1,000 input features.)
+The model is genuinely allele-conditioned. A **39-residue pseudo-sequence**
+contributes 780 of the 1,000 input features. For example, `GILGFVFTL` scores
+0.895 on HLA-A*02:01 and 0.214 on HLA-B*07:02 in the shipped runtime. An
+unsupported allele would leave all 780 of its allele features blank, so the
+runtime refuses it rather than returning a peptide-only score.
 
-This makes the model genuinely allele-conditioned. The clearest evidence is a
-control: the influenza epitope `GILGFVFTL` scores **0.906** on
-HLA-A\*02:01, its real restricting allele, and **0.194** on HLA-B\*07:02.
-
-## Model
+## Model at a glance
 
 | | |
 |---|---|
-| Algorithm | XGBoost, 800 trees |
-| Training data | MHCflurry-curated public binding affinities |
-| Rows / alleles | 120,000 / 129 HLA-A, -B, -C |
-| Split | peptide-grouped 80/20 — no peptide in both train and test |
-| **Held-out ROC-AUC** | **0.9188** |
-| **Held-out PR-AUC** | **0.8085** |
+| Algorithm | XGBoost gradient-boosted trees, 800 estimators |
+| Training data | MHCflurry-curated public binding-affinity measurements |
+| Rows / alleles | 120,000 / 129 HLA-A, -B, and -C alleles |
+| Features | one-hot peptide (11 x 20) + allele pseudo-sequence (39 x 20) |
+| Evaluation split | peptide-grouped 80/20; no peptide in both train and test |
+| Held-out ROC-AUC / PR-AUC | **0.9188 / 0.8085** |
+| Runtime | compact exported trees evaluated locally in TypeScript |
 
-A single held-out evaluation. Full numbers, limitations, and the biological
-sanity checks are in [BENCHMARKS.md](BENCHMARKS.md).
+The 14-allele leave-one-allele-out study is deliberately less flattering:
+macro ROC-AUC **0.842**, including **0.749** for HLA-C. This is a baseline for
+supported alleles, not a claim of state-of-the-art generalization.
 
-**What this model does not do:** on an allele withheld from training entirely
-(leave-one-allele-out), macro ROC-AUC drops to 0.842 — noticeably worse, and
-worse still for HLA-C (0.749), the least-represented locus. Allele support is
-uneven — HLA-A\*02:01 has 14,387 training measurements and the long tail has a
-few hundred — so the app shows the count for whatever allele you pick. Only
-quantitative affinity data was used; mass-spectrometry ligand data, which
-modern predictors lean on heavily, was excluded.
+## Evidence and verification
 
-## Client-side inference
-
-An XGBoost-trained model, exported to a compact tree representation and executed
-locally in TypeScript (`shared/pmhc-predictor.ts`). No ML runtime is loaded in the
-browser — no XGBoost build, no ONNX, no WASM — just a traversal of the exported
-trees. Predictions happen on your machine.
-
-Four separate checks, because they prove different things:
-
-```bash
-# 1. Runtime parity against a live booster — needs the training repo checked out
-node --experimental-strip-types scripts/verify-parity.mjs
-uv run --with xgboost --with "numpy<2" python scripts/verify_parity.py
-
-# 2. Python reference fixture, 3. export format, 4. runtime boundaries (44 tests)
-node --experimental-strip-types --test "scripts/tests/*.test.mjs"
-```
-
-Only the first needs Python or the training repository. Everything else runs in
-CI on every push.
-
-**Runtime parity.** 516 peptide/allele pairs across all 129 alleles, lengths 8–11,
-scored by `PeptideMHCPredictor` — the class the app actually ships — and compared
-against the XGBoost booster it was exported from:
-
-| | |
-|---|---|
-| max \|python − typescript\| | **7.481e-08** |
-| mean | **1.097e-08** |
-| tolerance (fails above) | **1e-06** |
-| worst pair | `KCMKIFMWCQT` / `HLA-A*02:19` |
-
-That residual is float32 rounding in the tree-sum accumulation, not a logic
-difference.
-
-Until 2026-09-04 the harness reimplemented the traversal itself rather than
-importing the shipped class, so the figure measured agreement between Python and
-the *harness*. The number is unchanged — the shipped path was in fact correct —
-but it is now measured rather than assumed. The standalone traversal survives as
-an export-format test, which is what it always was.
-
-**Python reference fixture.** The check above is authoritative but can only run
-where the training repository is checked out — which CI is not. So the booster's
-own outputs for all 516 pairs are recorded in
-`scripts/fixtures/python-reference.json`, and
-`scripts/tests/python-reference.test.mjs` replays them against the shipped
-predictor on every push, reaching the same **7.481e-08 / 1.097e-08** with no
-Python and no training repo.
-
-A recorded expectation is only worth something if it fails when the thing it
-describes changes. The fixture stores the sha256 of both `pmhc_model.json` and
-`pmhc_alleles.json`, and the test errors out if either has moved — re-exporting
-the model without regenerating the fixture is a hard failure, not a quiet pass
-against a model that no longer exists.
-
-**Export format.** `scripts/tests/export-format.test.mjs` reads the artifact with
-an independent minimal traversal and reproduces the shipped predictor exactly
-(max difference **0.0** over the same 516 pairs), confirming the JSON is
-self-describing enough to score from without the app's code.
-
-**Runtime boundaries.** `scripts/tests/runtime-boundaries.test.mjs` covers refusal:
-an allele absent from training has no pseudo-sequence, so all 780 of its allele
-features encode as all-zero and the model would still return a confident-looking number
-from the peptide alone. The predictor flags it and the caller refuses, rather than
-serving a prediction about a blank.
-
-Inference costs roughly **0.1 ms** per prediction — 0.094 and 0.125 ms on two
-consecutive runs of the same machine, so it is quoted to one figure rather than
-three. `verify-parity.mjs` prints the exact value for the run you just did. The model is a 2.6 MB JSON
-(**658 KB** gzipped) fetched on first prediction rather than at page load; the
-allele table is a further 12 KB.
-
-## Why no backend
-
-The app used to ship an Express server. It ran a scoring function, kept records
-in a hashmap, and returned stubs for integrations that did not exist — none of
-which needs a server. It also carried a Drizzle/Postgres layer that was never
-reachable: the request handlers talked to an in-memory store and `db.ts` was
-never imported.
-
-Removing it dropped 24 dependencies and made the app a static site: no cold
-start, no database to keep alive, no environment secrets, and nothing to
-monitor. Saved predictions now live in `localStorage`, so unlike the old
-in-memory store they survive a reload.
-
-## Running locally
+The repository makes different claims testable by different checks:
 
 ```bash
 npm ci
-npm run dev      # vite dev server
-npm run build    # static bundle in dist/public
-npm run check    # typecheck
+npm run check
+node --experimental-strip-types --test "scripts/tests/*.test.mjs"
+npm run build
 ```
 
-Any static host will serve `dist/public`.
+The suite validates the exported model structure, browser/Python reference
+fixture, asset hashes, batch allele pairing, runtime refusal for unsupported
+alleles, and published-model-card consistency. One optional local guard also
+compares committed metric snapshots with the private training checkout when it
+is available. See [reproducibility](docs/REPRODUCIBILITY.md) for exactly what
+is and is not independently reproducible from this repository.
 
-## Project layout
+The app's browser runtime is checked against the original XGBoost booster over
+516 peptide/allele pairs spanning every supported allele. The recorded maximum
+absolute difference is **7.481e-08**, below the **1e-06** failure threshold.
 
+## Local development
+
+```bash
+npm ci
+npm run dev
+npm run check
+npm run build
 ```
-client/
-  public/models/     pmhc_model.json (trees) + pmhc_alleles.json (pseudo-sequences)
-  src/lib/
-    pmhc-model.ts    lazy asset loader
-    local-backend.ts in-browser request handlers
-shared/
-  pmhc-predictor.ts  exported-tree traversal + feature encoding (the shipped runtime)
-  schema.ts          Zod request/response shapes
-scripts/
-  verify-parity.mjs  scores fixed pairs via the SHIPPED PeptideMHCPredictor
-  verify_parity.py   same pairs via the original XGBoost booster
-  tests/             export-format and runtime-boundary tests
-```
 
-Training code lives outside this repo in `ml-training/peptide-mhc/`
-(`train_baseline.py`, `export_for_browser.py`).
+`npm run dev` starts the Vite development server. `npm run build` writes a
+static bundle to `dist/public`; any static host can serve it.
 
-## Honest scope
+## Architecture
 
-Things this app deliberately does not pretend to do:
+The application is a React/Vite single-page application. Prediction requests
+are handled in-browser by `client/src/lib/local-backend.ts`, which loads
+versioned JSON model assets and invokes `shared/pmhc-predictor.ts`. Local
+history uses `localStorage`; there is no deployed backend. The complete current
+architecture is documented in [docs/architecture.md](docs/architecture.md).
 
-- **No IEDB / UniProt / PDB integration.** Those endpoints return
-  "not connected" rather than fabricated records.
-- **The peptide designer generates uniformly random sequences** and scores them
-  with the model. It is not a generative or optimization method.
-- **Motif-enrichment p-values** on the analysis page are static illustrative
-  examples, labelled as such in the UI.
+## Scope
 
-### Previous versions
+- Supported task: quantitative MHC class I affinity ranking for 8-11 residue
+  peptides and the 129 alleles represented in the shipped artifact.
+- Unsupported alleles are refused rather than scored from blank allele features.
+- This is not a class II predictor, immunogenicity predictor, mass-spectrometry
+  ligand predictor, generative peptide-design system, or clinical workflow.
+- The app makes no live IEDB, UniProt, PDB, or literature API calls.
 
-Earlier revisions of this project presented five model architectures (CNN,
-BiLSTM, Transformer, and two hybrids) and reported 94.2% accuracy / 0.941 AUC.
-Those architectures were never trained — every prediction came from
-`Math.random()` — and the metrics did not come from any training run. A later
-revision replaced them with a clearly-labelled deterministic placeholder, and
-briefly cited an ESM-2 result (0.922 AUC) for which no artifact could be found.
+## Historical record
 
-All of it has been removed. Every number in this repository now traces to a
-script in it. This note stays here because deleting the history would be its own
-kind of dishonesty.
+The project previously contained placeholder scoring and unsubstantiated model
+claims. Those paths were removed; the current historical account and the
+evidence used to replace them are preserved in
+[docs/CHANGE-RECORD-2026-08-26.md](docs/CHANGE-RECORD-2026-08-26.md).
 
 ## License
 
