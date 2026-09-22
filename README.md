@@ -7,11 +7,9 @@ human MHC class I (HLA) alleles. It runs a trained, allele-conditioned XGBoost
 model entirely on the user's machine: no prediction API, database, secret, or
 server-side inference path is involved.
 
-**Release status:** this repository contains the final release candidate. The
-public custom-domain deployment is intentionally held for portfolio release
-review; see [the release checklist](docs/RELEASE-CHECKLIST.md).
+**Live:** [peptide.arditmishra.com](https://peptide.arditmishra.com)
 
-**Read first:** [model card](docs/MODEL-CARD.md) ·
+**Read first:** [what was tried and why this model](DECISIONS.md) · [model card](docs/MODEL-CARD.md) ·
 [benchmarks](BENCHMARKS.md) ·
 [reproducibility boundary](docs/REPRODUCIBILITY.md) ·
 [architecture](docs/architecture.md)
